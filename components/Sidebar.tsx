@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/lib/app-context';
-import { ROLE_PERMISSIONS, NAV_PERMISSION_MAP } from '@/lib/types';
+import { ROLE_PERMISSIONS } from '@/lib/types';
 import {
   LayoutDashboard, Truck, Users, Map, Wrench,
-  Fuel, BarChart3, Settings, LogOut,
+  Fuel, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -23,7 +23,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useApp();
+  const { user, logout, sidebarCollapsed, setSidebarCollapsed } = useApp();
 
   const permissions = user ? ROLE_PERMISSIONS[user.role] : null;
 
@@ -33,11 +33,27 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0e1016] flex flex-col z-40 border-r border-white/[0.06]">
-      <div className="px-5 py-5 border-b border-white/[0.06]">
-        <span className="text-white font-semibold tracking-tight text-xl">TransitOps</span>
+    <aside
+      className={cn(
+        'fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-40 border-r border-sidebar-border transition-all duration-200 ease-in-out',
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Brand + Toggle */}
+      <div className="flex items-center justify-between px-4 py-5 border-b border-sidebar-border">
+        {!sidebarCollapsed && (
+          <span className="text-sidebar-foreground font-semibold tracking-tight text-xl">TransitOps</span>
+        )}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="w-8 h-8 rounded-md flex items-center justify-center text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-150 cursor-pointer flex-shrink-0"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(item => {
           const accessible = canAccess(item.permKey);
@@ -46,10 +62,16 @@ export function Sidebar() {
 
           if (!accessible) {
             return (
-              <div key={item.href} className="flex items-center gap-3 px-4 py-2.5 rounded-lg opacity-30 cursor-not-allowed select-none">
-                <Icon className="w-[18px] h-[18px] text-slate-400" />
-                <span className="text-sm text-slate-400">{item.label}</span>
-              </div>
+              <div
+        key={item.href}
+        className={cn(
+          'flex items-center rounded-md opacity-30 cursor-not-allowed select-none',
+          sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-4 py-2.5'
+        )}
+      >
+        <Icon className="w-5 h-5 text-sidebar-foreground/50 flex-shrink-0" />
+        {!sidebarCollapsed && <span className="text-base text-sidebar-foreground/50">{item.label}</span>}
+      </div>
             );
           }
 
@@ -58,29 +80,36 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer',
+                'flex items-center rounded-md text-base font-medium transition-all duration-150 cursor-pointer',
+                sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-4 py-2.5',
                 isActive
-                  ? 'bg-blue-600/20 text-blue-400'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
               )}
+              title={sidebarCollapsed ? item.label : undefined}
             >
               <Icon className={cn(
-                'w-[18px] h-[18px] flex-shrink-0 transition-colors duration-150',
-                isActive ? 'text-blue-400' : 'text-slate-500'
+                'w-5 h-5 flex-shrink-0',
+                isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'
               )} />
-              <span>{item.label}</span>
+              {!sidebarCollapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-white/[0.06]">
+      {/* Sign Out */}
+      <div className="px-3 py-4 border-t border-sidebar-border">
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-4 py-2.5 w-full rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] transition-all duration-150 cursor-pointer"
+          className={cn(
+            'flex items-center w-full rounded-md text-base font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-150 cursor-pointer',
+            sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-4 py-2.5'
+          )}
+          title={sidebarCollapsed ? 'Sign Out' : undefined}
         >
-          <LogOut className="w-[18px] h-[18px]" />
-          <span>Sign Out</span>
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!sidebarCollapsed && <span>Sign Out</span>}
         </button>
       </div>
     </aside>

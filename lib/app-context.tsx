@@ -23,6 +23,8 @@ interface AppContextType {
   failedAttempts: number;
   loading: boolean;
   error: string | null;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 
   vehicles: Vehicle[];
   drivers: Driver[];
@@ -39,7 +41,7 @@ interface AppContextType {
   setFuelLogs: React.Dispatch<React.SetStateAction<FuelLog[]>>;
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
 
-  // ── API Mutation Methods ──
+  // API Mutation Methods
 
   // Vehicles
   createVehicle: (data: Record<string, any>) => Promise<Vehicle>;
@@ -85,6 +87,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -93,7 +96,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const loadedRef = useRef(false);
 
-  // ── Load data on mount if token exists ──
+  // Load data on mount if token exists
 
   useEffect(() => {
     if (loadedRef.current) return;
@@ -120,14 +123,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setError(null);
     } catch (err: any) {
       console.error('Failed to load data:', err);
-      // Token might be expired
       api.clearToken();
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Refresh helpers ──
+  // Refresh helpers
 
   const refreshVehicles = useCallback(async () => {
     try {
@@ -183,7 +185,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // ── Auth ──
+  // Auth
 
   const login = useCallback(async (email: string, password: string, role: Role): Promise<boolean> => {
     try {
@@ -197,7 +199,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         initials: getInitials(result.user.name),
       });
       setFailedAttempts(0);
-      // Load all data after login
       await loadAllData();
       return true;
     } catch (err: any) {
@@ -249,7 +250,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadedRef.current = false;
   }, []);
 
-  // ── Vehicle Mutations ──
+  // Vehicle Mutations
 
   const createVehicle = useCallback(async (data: Record<string, any>): Promise<Vehicle> => {
     const vehicle = await api.createVehicle(data);
@@ -268,7 +269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setVehicles(prev => prev.filter(v => v.id !== id));
   }, []);
 
-  // ── Driver Mutations ──
+  // Driver Mutations
 
   const createDriver = useCallback(async (data: Record<string, any>): Promise<Driver> => {
     const driver = await api.createDriver(data);
@@ -287,7 +288,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDrivers(prev => prev.filter(d => d.id !== id));
   }, []);
 
-  // ── Trip Mutations ──
+  // Trip Mutations
 
   const createTrip = useCallback(async (data: Record<string, any>): Promise<Trip> => {
     const trip = await api.createTrip(data);
@@ -298,7 +299,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const dispatchTrip = useCallback(async (id: string, dispatchData: { vehicleId: string; driverId: string }): Promise<Trip> => {
     const trip = await api.dispatchTrip(id, dispatchData);
     setTrips(prev => prev.map(t => t.id === id ? trip : t));
-    // Refresh vehicles and drivers since their statuses changed
     refreshVehicles();
     refreshDrivers();
     return trip;
@@ -325,12 +325,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTrips(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // ── Maintenance Mutations ──
+  // Maintenance Mutations
 
   const createMaintenance = useCallback(async (data: Record<string, any>): Promise<MaintenanceRecord> => {
     const record = await api.createMaintenanceLog(data);
     setMaintenance(prev => [record, ...prev]);
-    // Refresh vehicles since status may have changed (IN_SHOP)
     refreshVehicles();
     return record;
   }, [refreshVehicles]);
@@ -347,7 +346,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMaintenance(prev => prev.filter(m => m.id !== id));
   }, []);
 
-  // ── Fuel & Expense Mutations ──
+  // Fuel & Expense Mutations
 
   const createFuelLog = useCallback(async (data: Record<string, any>): Promise<FuelLog> => {
     const log = await api.createFuelLog(data);
@@ -365,6 +364,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider value={{
       user, login: login as any, register: registerFn as any, logout, failedAttempts,
       loading, error,
+      sidebarCollapsed, setSidebarCollapsed,
       vehicles, setVehicles,
       drivers, setDrivers,
       trips, setTrips,
