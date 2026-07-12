@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.js
 
@@ -15,6 +16,9 @@
 # production
 /build
 
+# Windows weird file
+nul
+
 # misc
 .DS_Store
 *.pem
@@ -27,6 +31,11 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+
+# backend
+backend/node_modules/
+backend/dist/
+backend/.env
 
 # vercel
 .vercel
