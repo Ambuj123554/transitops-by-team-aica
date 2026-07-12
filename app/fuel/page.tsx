@@ -12,7 +12,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Search } from 'lucide-react';
-import { FuelLog, Expense } from '@/lib/types';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/StatusBadge';
 
@@ -34,13 +33,15 @@ type FuelFormData = z.infer<typeof fuelSchema>;
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 export default function FuelPage() {
-  const { vehicles, trips, fuelLogs, setFuelLogs, expenses, setExpenses, maintenance } = useApp();
+  const { vehicles, trips, fuelLogs, expenses, maintenance, createFuelLog, createExpense } = useApp();
   const [search, setSearch] = useState('');
   const [fuelOpen, setFuelOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [fuelVehicle, setFuelVehicle] = useState('');
   const [expVehicle, setExpVehicle] = useState('');
   const [expTrip, setExpTrip] = useState('');
+  const [fuelSubmitting, setFuelSubmitting] = useState(false);
+  const [expSubmitting, setExpSubmitting] = useState(false);
 
   const fuelForm = useForm<FuelFormData>({
     resolver: zodResolver(fuelSchema),
@@ -66,27 +67,35 @@ export default function FuelPage() {
   const totalMaint = maintenance.reduce((s, m) => s + m.cost, 0);
   const totalOps = totalFuel + totalMaint;
 
-  function onFuelSubmit(data: FuelFormData) {
-    setFuelLogs(prev => [{ id: `f${Date.now()}`, ...data }, ...prev]);
-    toast.success('Fuel log added');
-    fuelForm.reset();
-    setFuelVehicle('');
-    setFuelOpen(false);
+  async function onFuelSubmit(data: FuelFormData) {
+    setFuelSubmitting(true);
+    try {
+      await createFuelLog(data);
+      toast.success('Fuel log added');
+      fuelForm.reset();
+      setFuelVehicle('');
+      setFuelOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to log fuel');
+    } finally {
+      setFuelSubmitting(false);
+    }
   }
 
-  function onExpenseSubmit(data: ExpenseFormData) {
-    const total = data.toll + data.other;
-    setExpenses(prev => [{
-      id: `e${Date.now()}`,
-      ...data,
-      maintLinked: false,
-      total,
-    }, ...prev]);
-    toast.success('Expense logged');
-    expForm.reset();
-    setExpVehicle('');
-    setExpTrip('');
-    setExpenseOpen(false);
+  async function onExpenseSubmit(data: ExpenseFormData) {
+    setExpSubmitting(true);
+    try {
+      await createExpense(data);
+      toast.success('Expense logged');
+      expForm.reset();
+      setExpVehicle('');
+      setExpTrip('');
+      setExpenseOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to log expense');
+    } finally {
+      setExpSubmitting(false);
+    }
   }
 
   return (
@@ -229,7 +238,7 @@ export default function FuelPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setFuelOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-lg cursor-pointer">Save</Button>
+              <Button type="submit" disabled={fuelSubmitting} className="rounded-lg cursor-pointer">{fuelSubmitting ? 'Saving...' : 'Save'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -270,7 +279,7 @@ export default function FuelPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setExpenseOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-lg cursor-pointer">Save</Button>
+              <Button type="submit" disabled={expSubmitting} className="rounded-lg cursor-pointer">{expSubmitting ? 'Saving...' : 'Save'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

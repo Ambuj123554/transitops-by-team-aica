@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AlertTriangle, CheckCircle2, Info, ArrowRight } from 'lucide-react';
-import { Trip, TripStatus } from '@/lib/types';
+import { TripStatus } from '@/lib/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +61,7 @@ function LifecycleStepper({ current }: { current: TripStatus }) {
 }
 
 function TripCard({ trip, vehicleMap, driverMap }: {
-  trip: Trip;
+  trip: { id: string; vehicleId: string; driverId: string | null; source: string; destination: string; status: string; eta: string };
   vehicleMap: Record<string, { regNo: string; name: string }>;
   driverMap: Record<string, { name: string }>;
 }) {
@@ -91,10 +91,11 @@ function TripCard({ trip, vehicleMap, driverMap }: {
 }
 
 export default function TripsPage() {
-  const { vehicles, drivers, trips, setTrips, setVehicles, setDrivers } = useApp();
+  const { vehicles, drivers, trips, createTrip, dispatchTrip } = useApp();
   const [currentStage] = useState<TripStatus>('Draft');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<TripForm>({
     resolver: zodResolver(tripSchema),
@@ -117,27 +118,25 @@ export default function TripsPage() {
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(drivers.map(d => [d.id, d]));
 
-  function onDispatch(data: TripForm) {
-    const tripId = `TR-${2400 + trips.length + 1}`;
-    const newTrip: Trip = {
-      id: tripId,
-      vehicleId: data.vehicleId,
-      driverId: data.driverId,
-      source: data.source,
-      destination: data.destination,
-      cargoWeight: data.cargoWeight,
-      plannedDistance: data.plannedDistance,
-      status: 'Dispatched',
-      eta: 'En route',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setTrips(prev => [newTrip, ...prev]);
-    setVehicles(prev => prev.map(v => v.id === data.vehicleId ? { ...v, status: 'On Trip' } : v));
-    setDrivers(prev => prev.map(d => d.id === data.driverId ? { ...d, status: 'On Trip' } : d));
-    toast.success(`Trip ${tripId} dispatched successfully`);
-    reset();
-    setSelectedVehicleId('');
-    setSelectedDriverId('');
+  async function onDispatch(data: TripForm) {
+    setSubmitting(true);
+    try {
+      // Step 1: Create trip as DRAFT
+      const draft = await createTrip(data);
+      // Step 2: Dispatch it (validates vehicle/driver availability, sets ON_TRIP)
+      const dispatched = await dispatchTrip(draft.id, {
+        vehicleId: data.vehicleId,
+        driverId: data.driverId,
+      });
+      toast.success(`Trip ${dispatched.id} dispatched successfully`);
+      reset();
+      setSelectedVehicleId('');
+      setSelectedDriverId('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to dispatch trip');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -248,8 +247,8 @@ export default function TripsPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button type="submit" className="rounded-lg cursor-pointer" disabled={!!capacityExceeded}>
-                  Dispatch
+                <Button type="submit" className="rounded-lg cursor-pointer" disabled={!!capacityExceeded || submitting}>
+                  {submitting ? 'Dispatching...' : 'Dispatch'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => { reset(); setSelectedVehicleId(''); setSelectedDriverId(''); }} className="rounded-lg cursor-pointer">
                   Cancel

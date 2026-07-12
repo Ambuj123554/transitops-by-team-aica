@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, AlertTriangle, Info } from 'lucide-react';
-import { Driver, DriverStatus } from '@/lib/types';
+import { DriverStatus } from '@/lib/types';
 import { toast } from 'sonner';
 
 const driverSchema = z.object({
@@ -46,9 +46,10 @@ function SafetyBadge({ score }: { score: number }) {
 }
 
 export default function DriversPage() {
-  const { drivers, setDrivers } = useApp();
+  const { drivers, createDriver } = useApp();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<DriverForm>({
     resolver: zodResolver(driverSchema),
@@ -65,15 +66,17 @@ export default function DriversPage() {
     setOpen(true);
   }
 
-  function onSubmit(data: DriverForm) {
-    const newDriver: Driver = {
-      id: `d${Date.now()}`,
-      tripCompletion: 0,
-      ...data,
-    };
-    setDrivers(prev => [...prev, newDriver]);
-    toast.success('Driver profile created');
-    setOpen(false);
+  async function onSubmit(data: DriverForm) {
+    setSubmitting(true);
+    try {
+      await createDriver(data);
+      toast.success('Driver profile created');
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create driver');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -204,7 +207,7 @@ export default function DriversPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-lg cursor-pointer">Add Driver</Button>
+              <Button type="submit" disabled={submitting} className="rounded-lg cursor-pointer">Add Driver</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -46,11 +46,15 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     setLoginError('');
-    const ok = login(data.email, data.password, data.role);
+    const ok = await login(data.email, data.password, data.role);
     if (ok) {
       router.push('/dashboard');
     } else {
-      setLoginError('Invalid credentials. Please check your email and password.');
+      // Show a clear error — the backend sends specific messages like
+      // 'Account is locked. Try again in X minute(s).'
+      setLoginError(failedAttempts >= 5
+        ? 'Account locked due to too many failed attempts. Try again later.'
+        : 'Invalid email or password.');
     }
   }
 
