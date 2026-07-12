@@ -117,37 +117,36 @@ export async function getSummary(userRole?: string) {
 }
 
 export async function getMonthlyRevenue() {
-  const now = new Date();
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-
   const trips = await prisma.trip.findMany({
     where: {
       status: 'COMPLETED',
-      completedAt: { gte: sixMonthsAgo },
+      completedAt: { not: null },
+      revenue: { not: null },
     },
     select: { revenue: true, completedAt: true },
+    orderBy: { completedAt: 'asc' },
   });
 
-  const monthMap: Record<string, number> = {};
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const shortKey = d.toLocaleString('en-US', { month: 'short' });
-    monthMap[shortKey] = 0;
-  }
+  // Group by month+year so "Dec 2023" and "Jan 2024" don't collide
+  const monthMap: Record<string, { revenue: number; sortKey: number }> = {};
 
   for (const trip of trips) {
     if (trip.completedAt && trip.revenue) {
-      const month = trip.completedAt.toLocaleString('en-US', { month: 'short' });
-      if (monthMap[month] !== undefined) {
-        monthMap[month] += trip.revenue;
+      const key = trip.completedAt.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      const sortKey = trip.completedAt.getTime();
+      if (!monthMap[key]) {
+        monthMap[key] = { revenue: 0, sortKey };
       }
+      monthMap[key].revenue += trip.revenue;
     }
   }
 
-  return Object.entries(monthMap).map(([month, revenue]) => ({
-    month,
-    revenue: Math.round(revenue * 100) / 100,
-  }));
+  return Object.entries(monthMap)
+    .sort(([, a], [, b]) => a.sortKey - b.sortKey)
+    .map(([monthYear, { revenue }]) => ({
+      month: monthYear.split(' ')[0],
+      revenue: Math.round(revenue * 100) / 100,
+    }));
 }
 
 export async function getTopCostlyVehicles() {

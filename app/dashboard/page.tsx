@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const [vehicleType, setVehicleType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [region, setRegion] = useState('all');
-  const [advisorExpanded, setAdvisorExpanded] = useState(true);
+  const [advisorExpanded, setAdvisorExpanded] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
 
   const insights = useMemo(

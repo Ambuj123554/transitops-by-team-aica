@@ -138,7 +138,9 @@ export default function AnalyticsPage() {
 
   // ── Revenue chart ────────────────────────────────────────────────────────
   const localMonthlyRev = useMemo(() => computeLocalRevenue(trips), [trips]);
-  const displayMonthlyRevenue = monthlyRevenue.length > 0 ? monthlyRevenue : localMonthlyRev;
+  // Use backend data only if it has at least one non-zero revenue entry
+  const backendHasData = monthlyRevenue.some(m => m.revenue > 0);
+  const displayMonthlyRevenue = backendHasData ? monthlyRevenue : localMonthlyRev;
 
   // ── Vehicle costs ────────────────────────────────────────────────────────
   const vehicleCosts = topCostlyVehicles.length > 0
