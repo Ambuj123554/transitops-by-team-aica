@@ -20,13 +20,26 @@ const STATUS_STYLES: Record<string, string> = {
   Active:      'bg-amber-50 text-amber-700 border-amber-200/60',
 };
 
+/**
+ * StatusBadge component displays a color-coded status label.
+ * Supports Vehicle, Driver, Trip, and Maintenance statuses.
+ *
+ * @example * ```tsx
+ * <StatusBadge status="Active" />
+ * <StatusBadge status="Dispatched" className="text-xs" />
+ * ```
+ */
 export function StatusBadge({ status, className }: { status: Status; className?: string }) {
   const style = STATUS_STYLES[status] ?? 'bg-muted text-muted-foreground border-border/60';
   return (
-    <span className={cn(
-      'inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border',
-      style, className
-    )}>
+    <span
+      className={cn(
+        'inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border',
+        style, className
+      )}
+      aria-label={`Status: ${status}`}
+      role="status"
+    >
       {status}
     </span>
   );

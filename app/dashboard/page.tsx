@@ -4,14 +4,14 @@ import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useApp } from '@/lib/app-context';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { computeInsights } from '@/lib/insights';
+import { DashboardSkeleton } from '@/components/LoadingSkeleton';
 import { Lightbulb, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="card-modern p-5 flex flex-col gap-1">
+    <div className="card-modern p-5 flex flex-col gap-1" role="region" aria-label={label}>
       <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
       <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
       {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
@@ -42,13 +42,11 @@ const INSIGHT_BORDERS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { vehicles, drivers, trips, maintenance, fuelLogs } = useApp();
-  const [vehicleType, setVehicleType] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [region, setRegion] = useState('all');
-  const [advisorExpanded, setAdvisorExpanded] = useState(false);
+  const { vehicles, drivers, trips, maintenance, fuelLogs, loading } = useApp();
+  const [advisorExpanded, setAdvisorExpanded] = useState(true);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
 
+  // Always compute data (hooks must be called unconditionally)
   const insights = useMemo(
     () => computeInsights(vehicles, drivers, trips, maintenance, fuelLogs),
     [vehicles, drivers, trips, maintenance, fuelLogs]
@@ -56,18 +54,18 @@ export default function DashboardPage() {
 
   const visibleInsights = insights.filter(i => !dismissedInsights.includes(i.id));
 
-  const allDrivers = drivers;
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
-  const driverMap = Object.fromEntries(allDrivers.map(d => [d.id, d]));
+  const driverMap = Object.fromEntries(drivers.map(d => [d.id, d]));
 
   const activeVehicles = vehicles.filter(v => v.status === 'On Trip').length;
   const availableVehicles = vehicles.filter(v => v.status === 'Available').length;
   const inMaintenance = vehicles.filter(v => v.status === 'In Shop').length;
   const activeTrips = trips.filter(t => t.status === 'Dispatched').length;
   const pendingTrips = trips.filter(t => t.status === 'Draft' || t.status === 'Pending Approval').length;
-  const driversOnDuty = allDrivers.filter(d => d.status === 'On Trip').length;
-  const utilization = vehicles.length > 0
-    ? Math.round((activeVehicles / vehicles.filter(v => v.status !== 'Retired').length) * 100)
+  const driversOnDuty = drivers.filter(d => d.status === 'On Trip').length;
+  const nonRetired = vehicles.filter(v => v.status !== 'Retired').length;
+  const utilization = nonRetired > 0
+    ? Math.round((activeVehicles / nonRetired) * 100)
     : 0;
 
   const recentTrips = [...trips].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
@@ -79,23 +77,37 @@ export default function DashboardPage() {
   }));
   const maxCount = Math.max(...vehicleStatusCounts.map(v => v.count), 1);
 
+  // Show loading skeleton when data is loading
+  if (loading) {
+    return (
+      <AppLayout>
+        <DashboardSkeleton />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="page-container">
         <div className="page-header">
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Real-time fleet operations overview</p>
+          <p className="sr-only" role="status" aria-live="polite">
+            {vehicles.length} vehicles, {drivers.length} drivers, {trips.length} trips loaded
+          </p>
         </div>
 
         {/* AI Operations Advisor */}
         {visibleInsights.length > 0 && (
-          <div className="card-modern overflow-hidden mb-6">
+          <div className="card-modern overflow-hidden mb-6" role="region" aria-label="AI Operations Advisor">
             <button
               onClick={() => setAdvisorExpanded(!advisorExpanded)}
               className="w-full px-5 py-3 border-b border-border flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer text-left"
+              aria-expanded={advisorExpanded}
+              aria-controls="advisor-content"
             >
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold">AI</span>
+                <span className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold" aria-hidden="true">AI</span>
                 <h2 className="font-semibold text-foreground text-sm">Operations Advisor</h2>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
                   {visibleInsights.length} insight{visibleInsights.length !== 1 ? 's' : ''}
@@ -119,13 +131,14 @@ export default function DashboardPage() {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   strokeWidth={2}
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </button>
             {advisorExpanded && (
-              <div className="divide-y divide-border/50">
+              <div id="advisor-content" className="divide-y divide-border/50">
                 {visibleInsights.map((insight, idx) => (
                   <div
                     key={insight.id}
@@ -134,8 +147,9 @@ export default function DashboardPage() {
                       INSIGHT_BORDERS[insight.type]
                     )}
                     style={{ animationDelay: `${idx * 50}ms` }}
+                    role="alert"
                   >
-                    <span className="flex-shrink-0 mt-0.5">
+                    <span className="flex-shrink-0 mt-0.5" aria-hidden="true">
                       {INSIGHT_ICONS[insight.type] ?? <Info className="w-4 h-4 text-slate-400" />}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -145,9 +159,10 @@ export default function DashboardPage() {
                     <button
                       onClick={() => setDismissedInsights(prev => [...prev, insight.id])}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-background/80 cursor-pointer"
-                      title="Dismiss"
+                      title="Dismiss insight"
+                      aria-label={`Dismiss insight: ${insight.title}`}
                     >
-                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                      <X className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -175,14 +190,14 @@ export default function DashboardPage() {
               <h2 className="font-semibold text-foreground">Recent Trips</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="table-modern">
+              <table className="table-modern" role="grid" aria-label="Recent trips">
                 <thead>
                   <tr>
-                    <th>Trip ID</th>
-                    <th>Vehicle</th>
-                    <th>Driver</th>
-                    <th>Status</th>
-                    <th>ETA</th>
+                    <th scope="col">Trip ID</th>
+                    <th scope="col">Vehicle</th>
+                    <th scope="col">Driver</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">ETA</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -216,7 +231,7 @@ export default function DashboardPage() {
                     <span className="text-sm text-foreground/80">{label}</span>
                     <span className="text-sm font-semibold text-foreground">{count}</span>
                   </div>
-                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={count} aria-valuemin={0} aria-valuemax={maxCount} aria-label={`${label}: ${count}`}>
                     <div
                       className={`h-full rounded-full transition-all ${color}`}
                       style={{ width: `${(count / maxCount) * 100}%` }}

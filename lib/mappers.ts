@@ -203,7 +203,7 @@ function computeEta(status: string, dispatchedAt: string | null): string {
   return 'En route';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/* Flattens front-end camelCase trip fields to the back-end snake_case API contract */
 export function mapTripCreateToApi(data: Record<string, any>) {
   return {
     source: data.source,

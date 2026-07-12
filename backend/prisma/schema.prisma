@@ -49,6 +49,9 @@ enum MaintenanceStatus {
 
 // ── Models ──────────────────────────────────────────────────────────────────
 
+/// Registered system users with role-based access control (RBAC).
+/// Passwords are hashed with bcrypt (10 rounds).
+/// Account lockout after 5 failed attempts for 15 minutes.
 model User {
   id                 String   @id @default(cuid())
   name               String
@@ -62,8 +65,13 @@ model User {
   updatedAt          DateTime @updatedAt
 
   @@index([email])
+  @@index([role])
+  @@index([email, role])
 }
 
+/// Fleet vehicles tracked by the system.
+/// Each vehicle has a unique registration number and lifecycle status.
+/// Acquisition cost is used for ROI calculations in analytics.
 model Vehicle {
   id              String        @id @default(cuid())
   regNo           String        @unique
@@ -87,6 +95,8 @@ model Vehicle {
   @@index([regNo])
   @@index([status])
   @@index([region])
+  @@index([type, status])
+  @@index([region, status])
 }
 
 model Driver {
@@ -109,6 +119,10 @@ model Driver {
   @@index([status])
 }
 
+/// A trip represents a transportation assignment from source to destination.
+/// Trips follow a lifecycle: DRAFT → PENDING_APPROVAL → DISPATCHED → COMPLETED
+/// or can be CANCELLED at any stage.
+/// Revenue and actual distance are recorded upon completion for analytics.
 model Trip {
   id               String     @id @default(cuid())
   source           String
@@ -137,6 +151,8 @@ model Trip {
   @@index([status])
   @@index([vehicleId])
   @@index([driverId])
+  @@index([status, createdAt])
+  @@index([vehicleId, status])
 }
 
 model MaintenanceRecord {
@@ -174,6 +190,8 @@ model FuelLog {
   @@index([tripId])
 }
 
+/// Expenses incurred during trips (tolls, misc costs).
+/// Linked to both a trip and a vehicle for full audit trail.
 model Expense {
   id        String  @id @default(cuid())
   toll      Float   @default(0)
@@ -182,7 +200,7 @@ model Expense {
   maintLinked Boolean @default(false)
 
   tripId    String
-  trip      Trip    @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  trip      Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
   vehicleId String
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
 
@@ -191,6 +209,7 @@ model Expense {
 
   @@index([vehicleId])
   @@index([tripId])
+  @@index([vehicleId, createdAt])
 }
 
 model VehicleDocument {
