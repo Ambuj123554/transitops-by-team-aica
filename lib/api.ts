@@ -243,6 +243,21 @@ export async function createTrip(data: Record<string, any>): Promise<Trip> {
   return mapTripFromApi(result) as Trip;
 }
 
+export async function requestApproval(id: string, data: { vehicleId: string; driverId: string }): Promise<Trip> {
+  const result = await request<ApiTrip>(`/trips/${id}/request-approval`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return mapTripFromApi(result) as Trip;
+}
+
+export async function approveTrip(id: string): Promise<Trip> {
+  const result = await request<ApiTrip>(`/trips/${id}/approve`, {
+    method: 'PATCH',
+  });
+  return mapTripFromApi(result) as Trip;
+}
+
 export async function dispatchTrip(id: string, data: { vehicleId: string; driverId: string }): Promise<Trip> {
   const result = await request<ApiTrip>(`/trips/${id}/dispatch`, {
     method: 'PATCH',
@@ -305,12 +320,12 @@ export async function deleteMaintenanceLog(id: string): Promise<{ id: string }> 
 
 export async function getFuelLogs(vehicleId?: string): Promise<FuelLog[]> {
   const qs = vehicleId ? `?vehicleId=${vehicleId}` : '';
-  const data = await request<ApiFuelLog[]>(`/fuel-expenses/fuel${qs}`);
+  const data = await request<ApiFuelLog[]>(`/fuel-expenses/fuel-logs${qs}`);
   return data.map(mapFuelLogFromApi);
 }
 
 export async function createFuelLog(data: Record<string, any>): Promise<FuelLog> {
-  const result = await request<ApiFuelLog>('/fuel-expenses/fuel', {
+  const result = await request<ApiFuelLog>('/fuel-expenses/fuel-logs', {
     method: 'POST',
     body: JSON.stringify(mapFuelLogToApi(data)),
   });
@@ -344,6 +359,39 @@ export async function getOperationalCost(vehicleId?: string) {
     total: number;
     vehicleId?: string;
   }>(path);
+}
+
+// ── Analytics API ──
+
+export async function getAnalyticsSummary() {
+  return request<{
+    fuelEfficiencyKmPerL?: number;
+    fleetUtilizationPct?: number;
+    operationalCost?: number;
+    vehicleRoiPct?: number;
+  }>('/analytics/summary');
+}
+
+export async function getMonthlyRevenue() {
+  return request<{ month: string; revenue: number }[]>('/analytics/monthly-revenue');
+}
+
+export async function getTopCostlyVehicles() {
+  return request<{ id: string; regNo: string; name: string; cost: number }[]>('/analytics/top-costly-vehicles');
+}
+
+export async function exportAnalyticsCsv(): Promise<string> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_BASE}/api/analytics/export/csv`, { headers });
+  if (!res.ok) {
+    const msg = res.status === 401 ? 'Unauthorized' : 'Failed to export CSV';
+    throw new ApiErrorClass(msg, 'EXPORT_ERROR');
+  }
+  return res.text();
 }
 
 // ── Full Data Load (for context initialization) ──

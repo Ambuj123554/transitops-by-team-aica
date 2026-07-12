@@ -25,7 +25,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const ROLE_ACCESS: Record<Role, string> = {
-  'Fleet Manager': 'Fleet, Drivers, Maintenance, Analytics',
+  'Fleet Manager': 'Full access to Fleet, Drivers, Trips, Fuel & Expenses, Analytics',
   'Dispatcher': 'Dashboard, Trips (full), Fleet & Drivers (view)',
   'Safety Officer': 'Drivers (full), Trips (view)',
   'Financial Analyst': 'Fuel & Expenses, Analytics, Fleet & Analytics (view)',

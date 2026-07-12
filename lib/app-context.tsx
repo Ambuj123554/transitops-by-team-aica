@@ -57,6 +57,8 @@ interface AppContextType {
 
   // Trips
   createTrip: (data: Record<string, any>) => Promise<Trip>;
+  requestApproval: (id: string, data: { vehicleId: string; driverId: string }) => Promise<Trip>;
+  approveTrip: (id: string) => Promise<Trip>;
   dispatchTrip: (id: string, data: { vehicleId: string; driverId: string }) => Promise<Trip>;
   completeTrip: (id: string, data: { actualDistanceKm: number; finalOdometer?: number; fuelConsumedLiters?: number; revenue?: number }) => Promise<Trip>;
   cancelTrip: (id: string) => Promise<Trip>;
@@ -187,7 +189,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Auth
 
-  const login = useCallback(async (email: string, password: string, role: Role): Promise<boolean> => {
+  const login = useCallback(async (email: string, password: string, _role: Role): Promise<boolean> => {
     try {
       setError(null);
       const result = await api.login(email, password);
@@ -195,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUser({
         name: result.user.name,
         email: result.user.email,
-        role: role,
+        role: mapRoleFromApi(result.user.role) as Role,
         initials: getInitials(result.user.name),
       });
       setFailedAttempts(0);
@@ -296,6 +298,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return trip;
   }, []);
 
+  const requestApproval = useCallback(async (id: string, data: { vehicleId: string; driverId: string }): Promise<Trip> => {
+    const trip = await api.requestApproval(id, data);
+    setTrips(prev => prev.map(t => t.id === id ? trip : t));
+    return trip;
+  }, []);
+
+  const approveTrip = useCallback(async (id: string): Promise<Trip> => {
+    const trip = await api.approveTrip(id);
+    setTrips(prev => prev.map(t => t.id === id ? trip : t));
+    refreshVehicles();
+    refreshDrivers();
+    return trip;
+  }, [refreshVehicles, refreshDrivers]);
+
   const dispatchTrip = useCallback(async (id: string, dispatchData: { vehicleId: string; driverId: string }): Promise<Trip> => {
     const trip = await api.dispatchTrip(id, dispatchData);
     setTrips(prev => prev.map(t => t.id === id ? trip : t));
@@ -374,7 +390,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       createVehicle, updateVehicle, deleteVehicle, refreshVehicles,
       createDriver, updateDriver, deleteDriver, refreshDrivers,
-      createTrip, dispatchTrip, completeTrip, cancelTrip, deleteTrip, refreshTrips,
+      createTrip, requestApproval, approveTrip, dispatchTrip, completeTrip, cancelTrip, deleteTrip, refreshTrips,
       createMaintenance, updateMaintenance, deleteMaintenance, refreshMaintenance,
       createFuelLog, createExpense, refreshFuelLogs, refreshExpenses,
     }}>

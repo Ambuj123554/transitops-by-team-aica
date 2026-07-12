@@ -13,14 +13,20 @@ router.get('/:id', requireAuth, requireRole('DISPATCHER', 'FLEET_MANAGER', 'SAFE
 // Create draft trip — DISPATCHER only
 router.post('/', requireAuth, requireRole('DISPATCHER'), tripController.create);
 
-// Dispatch trip (core business logic) — DISPATCHER only
+// Request approval — DISPATCHER submits for approval
+router.patch('/:id/request-approval', requireAuth, requireRole('DISPATCHER'), tripController.requestApproval);
+
+// Approve trip — FLEET_MANAGER approves
+router.patch('/:id/approve', requireAuth, requireRole('FLEET_MANAGER'), tripController.approve);
+
+// Dispatch trip (core business logic) — DISPATCHER only (skip approval flow)
 router.patch('/:id/dispatch', requireAuth, requireRole('DISPATCHER'), tripController.dispatch);
 
 // Complete trip — DISPATCHER only
 router.patch('/:id/complete', requireAuth, requireRole('DISPATCHER'), tripController.complete);
 
-// Cancel trip — DISPATCHER only
-router.patch('/:id/cancel', requireAuth, requireRole('DISPATCHER'), tripController.cancel);
+// Cancel trip — DISPATCHER or FLEET_MANAGER
+router.patch('/:id/cancel', requireAuth, requireRole('DISPATCHER', 'FLEET_MANAGER'), tripController.cancel);
 
 // Delete draft trip — DISPATCHER only
 router.delete('/:id', requireAuth, requireRole('DISPATCHER'), tripController.remove);

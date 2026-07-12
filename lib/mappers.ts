@@ -11,6 +11,7 @@ export const STATUS_MAP = {
   Suspended: 'SUSPENDED',
   // Trip
   Draft: 'DRAFT',
+  'Pending Approval': 'PENDING_APPROVAL',
   Dispatched: 'DISPATCHED',
   Completed: 'COMPLETED',
   Cancelled: 'CANCELLED',

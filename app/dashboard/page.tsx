@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useApp } from '@/lib/app-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { computeInsights } from '@/lib/insights';
+import { Lightbulb, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -24,13 +27,34 @@ const STATUS_COLORS: Record<string, string> = {
   Retired: 'bg-muted-foreground/40',
 };
 
+const INSIGHT_ICONS: Record<string, React.ReactNode> = {
+  alert: <AlertCircle className="w-4 h-4 text-red-500" />,
+  warning: <AlertTriangle className="w-4 h-4 text-amber-500" />,
+  info: <Info className="w-4 h-4 text-blue-500" />,
+  success: <Lightbulb className="w-4 h-4 text-emerald-500" />,
+};
+
+const INSIGHT_BORDERS: Record<string, string> = {
+  alert: 'border-l-red-400 bg-red-50/40',
+  warning: 'border-l-amber-400 bg-amber-50/40',
+  info: 'border-l-blue-400 bg-blue-50/40',
+  success: 'border-l-emerald-400 bg-emerald-50/40',
+};
+
 export default function DashboardPage() {
-  const { vehicles, drivers, trips } = useApp();
+  const { vehicles, drivers, trips, maintenance, fuelLogs } = useApp();
   const [vehicleType, setVehicleType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [region, setRegion] = useState('all');
+  const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
 
-  // Use drivers from the returned object since useApp() is already called
+  const insights = useMemo(
+    () => computeInsights(vehicles, drivers, trips, maintenance, fuelLogs),
+    [vehicles, drivers, trips, maintenance, fuelLogs]
+  );
+
+  const visibleInsights = insights.filter(i => !dismissedInsights.includes(i.id));
+
   const allDrivers = drivers;
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
   const driverMap = Object.fromEntries(allDrivers.map(d => [d.id, d]));
@@ -39,7 +63,7 @@ export default function DashboardPage() {
   const availableVehicles = vehicles.filter(v => v.status === 'Available').length;
   const inMaintenance = vehicles.filter(v => v.status === 'In Shop').length;
   const activeTrips = trips.filter(t => t.status === 'Dispatched').length;
-  const pendingTrips = trips.filter(t => t.status === 'Draft').length;
+  const pendingTrips = trips.filter(t => t.status === 'Draft' || t.status === 'Pending Approval').length;
   const driversOnDuty = allDrivers.filter(d => d.status === 'On Trip').length;
   const utilization = vehicles.length > 0
     ? Math.round((activeVehicles / vehicles.filter(v => v.status !== 'Retired').length) * 100)
@@ -62,50 +86,59 @@ export default function DashboardPage() {
           <p className="page-subtitle">Real-time fleet operations overview</p>
         </div>
 
-        {/* Filter row */}
-        <div className="flex gap-3 flex-wrap">
-          <Select value={vehicleType} onValueChange={setVehicleType}>
-            <SelectTrigger className="w-44 h-9 text-sm rounded-lg">
-              <SelectValue placeholder="Vehicle Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Vehicle Type: All</SelectItem>
-              <SelectItem value="heavy">Heavy Truck</SelectItem>
-              <SelectItem value="medium">Medium Truck</SelectItem>
-              <SelectItem value="light">Light Van</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-9 text-sm rounded-lg">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Status: All</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="on-trip">On Trip</SelectItem>
-              <SelectItem value="in-shop">In Shop</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={region} onValueChange={setRegion}>
-            <SelectTrigger className="w-40 h-9 text-sm rounded-lg">
-              <SelectValue placeholder="Region" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Region: All</SelectItem>
-              <SelectItem value="north">North</SelectItem>
-              <SelectItem value="south">South</SelectItem>
-              <SelectItem value="west">West</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* AI Operations Advisor */}
+        {visibleInsights.length > 0 && (
+          <div className="card-modern overflow-hidden mb-6">
+            <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold">AI</span>
+                <h2 className="font-semibold text-foreground text-sm">Operations Advisor</h2>
+                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">Rule-based</span>
+              </div>
+              {dismissedInsights.length > 0 && (
+                <button
+                  onClick={() => setDismissedInsights([])}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  Reset all
+                </button>
+              )}
+            </div>
+            <div className="divide-y divide-border/50">
+              {visibleInsights.map((insight, idx) => (
+                <div
+                  key={insight.id}
+                  className={cn(
+                    'flex items-start gap-3 px-5 py-3 border-l-4 transition-all duration-200 hover:brightness-105 group',
+                    INSIGHT_BORDERS[insight.type]
+                  )}
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  <span className="text-base leading-5 mt-0.5 flex-shrink-0">{insight.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{insight.description}</p>
+                  </div>
+                  <button
+                    onClick={() => setDismissedInsights(prev => [...prev, insight.id])}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-background/80 cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
           <KpiCard label="Active Vehicles" value={activeVehicles} sub="Currently on trip" />
           <KpiCard label="Available Vehicles" value={availableVehicles} sub="Ready to dispatch" />
           <KpiCard label="In Maintenance" value={inMaintenance} sub="In shop" />
           <KpiCard label="Active Trips" value={activeTrips} sub="Dispatched" />
-          <KpiCard label="Pending Trips" value={pendingTrips} sub="Draft stage" />
+          <KpiCard label="Pending Trips" value={pendingTrips} sub="Draft / Approval" />
           <KpiCard label="Drivers on Duty" value={driversOnDuty} sub="Currently on trip" />
           <KpiCard label="Fleet Utilization" value={`${utilization}%`} sub="Active / Non-retired" />
         </div>

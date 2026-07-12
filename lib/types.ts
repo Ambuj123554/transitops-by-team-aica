@@ -2,7 +2,7 @@ export type Role = 'Fleet Manager' | 'Dispatcher' | 'Safety Officer' | 'Financia
 
 export type VehicleStatus = 'Available' | 'On Trip' | 'In Shop' | 'Retired';
 export type DriverStatus = 'Available' | 'On Trip' | 'Off Duty' | 'Suspended';
-export type TripStatus = 'Draft' | 'Dispatched' | 'Completed' | 'Cancelled';
+export type TripStatus = 'Draft' | 'Pending Approval' | 'Dispatched' | 'Completed' | 'Cancelled';
 export type MaintenanceStatus = 'Active' | 'Completed';
 
 export interface Vehicle {
@@ -76,7 +76,7 @@ export interface AppUser {
 }
 
 export const ROLE_PERMISSIONS: Record<Role, Record<string, 'full' | 'view' | 'none'>> = {
-  'Fleet Manager':      { fleet: 'full', drivers: 'full', trips: 'none', fuel: 'none',  analytics: 'full' },
+  'Fleet Manager':      { fleet: 'full', drivers: 'full', trips: 'full', fuel: 'full',  analytics: 'full' },
   'Dispatcher':         { fleet: 'view', drivers: 'none', trips: 'full', fuel: 'none',  analytics: 'none' },
   'Safety Officer':     { fleet: 'none', drivers: 'full', trips: 'view', fuel: 'none',  analytics: 'none' },
   'Financial Analyst':  { fleet: 'view', drivers: 'none', trips: 'none', fuel: 'full',  analytics: 'full' },

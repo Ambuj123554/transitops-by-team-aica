@@ -36,6 +36,7 @@ enum DriverStatus {
 
 enum TripStatus {
   DRAFT
+  PENDING_APPROVAL
   DISPATCHED
   COMPLETED
   CANCELLED

@@ -53,6 +53,112 @@ export async function createTrip(input: CreateTripInput) {
   });
 }
 
+export async function requestApproval(id: string, input: DispatchTripInput) {
+  const trip = await prisma.trip.findUnique({ where: { id } });
+  if (!trip) {
+    throw new NotFoundError('Trip not found');
+  }
+  if (trip.status !== 'DRAFT') {
+    throw new ConflictError(`Trip cannot be submitted from status ${trip.status}. Only DRAFT trips can be submitted for approval.`, 'INVALID_TRIP_STATUS');
+  }
+
+  // Validate vehicle
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: input.vehicleId } });
+  if (!vehicle) {
+    throw new NotFoundError('Vehicle not found');
+  }
+  if (vehicle.status !== 'AVAILABLE') {
+    throw new ConflictError(
+      `Vehicle ${vehicle.regNo} is ${vehicle.status.toLowerCase().replace('_', ' ')} and cannot be assigned`,
+      'VEHICLE_NOT_AVAILABLE'
+    );
+  }
+
+  // Validate driver
+  const driver = await prisma.driver.findUnique({ where: { id: input.driverId } });
+  if (!driver) {
+    throw new NotFoundError('Driver not found');
+  }
+  if (driver.status !== 'AVAILABLE') {
+    throw new ConflictError(
+      `Driver ${driver.name} is ${driver.status.toLowerCase().replace('_', ' ')} and cannot be assigned`,
+      'DRIVER_NOT_AVAILABLE'
+    );
+  }
+  if (new Date(driver.expiry) < new Date()) {
+    throw new ConflictError(
+      `Driver ${driver.name}'s license expired on ${driver.expiry.toISOString().split('T')[0]}`,
+      'DRIVER_NOT_AVAILABLE'
+    );
+  }
+
+  // Validate cargo capacity
+  if (trip.cargoWeightKg > vehicle.capacity) {
+    const overage = trip.cargoWeightKg - vehicle.capacity;
+    throw new ConflictError(
+      `Capacity exceeded by ${overage} kg. Vehicle max: ${vehicle.capacity} kg, cargo: ${trip.cargoWeightKg} kg`,
+      'CAPACITY_EXCEEDED'
+    );
+  }
+
+  return prisma.trip.update({
+    where: { id },
+    data: {
+      status: 'PENDING_APPROVAL',
+      vehicleId: input.vehicleId,
+      driverId: input.driverId,
+    },
+    include: {
+      vehicle: { select: { id: true, regNo: true, name: true } },
+      driver: { select: { id: true, name: true } },
+    },
+  });
+}
+
+export async function approveTrip(id: string) {
+  const trip = await prisma.trip.findUnique({
+    where: { id },
+    include: {
+      vehicle: true,
+      driver: true,
+    },
+  });
+  if (!trip) {
+    throw new NotFoundError('Trip not found');
+  }
+  if (trip.status !== 'PENDING_APPROVAL') {
+    throw new ConflictError(`Trip cannot be approved from status ${trip.status}. Only PENDING_APPROVAL trips can be approved.`, 'INVALID_TRIP_STATUS');
+  }
+
+  if (!trip.vehicleId || !trip.driverId) {
+    throw new ConflictError('Trip must have a vehicle and driver assigned before approval', 'MISSING_ASSIGNMENT');
+  }
+
+  const [updatedTrip] = await prisma.$transaction([
+    prisma.trip.update({
+      where: { id },
+      data: {
+        status: 'DISPATCHED',
+        dispatchedAt: new Date(),
+      },
+      include: {
+        vehicle: { select: { id: true, regNo: true, name: true } },
+        driver: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.vehicle.update({
+      where: { id: trip.vehicleId },
+      data: { status: 'ON_TRIP' },
+    }),
+    prisma.driver.update({
+      where: { id: trip.driverId },
+      data: { status: 'ON_TRIP' },
+    }),
+  ]);
+
+  return updatedTrip;
+}
+
 export async function dispatchTrip(id: string, input: DispatchTripInput) {
   const trip = await prisma.trip.findUnique({ where: { id } });
   if (!trip) {

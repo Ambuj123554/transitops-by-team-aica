@@ -13,6 +13,7 @@ const STATUS_STYLES: Record<string, string> = {
   'Off Duty':  'bg-muted text-muted-foreground border-border/60',
   Suspended:   'bg-red-50 text-red-700 border-red-200/60',
   Draft:       'bg-muted text-muted-foreground border-border/60',
+  'Pending Approval': 'bg-purple-50 text-purple-700 border-purple-200/60',
   Dispatched:  'bg-blue-50 text-blue-700 border-blue-200/60',
   Completed:   'bg-emerald-50 text-emerald-700 border-emerald-200/60',
   Cancelled:   'bg-red-50 text-red-700 border-red-200/60',
