@@ -1,20 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useApp } from '@/lib/app-context';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const ROLE_COLORS: Record<string, string> = {
-  'Fleet Manager':     'bg-blue-100 text-blue-700',
-  'Dispatcher':        'bg-emerald-100 text-emerald-700',
-  'Safety Officer':    'bg-amber-100 text-amber-700',
-  'Financial Analyst': 'bg-purple-100 text-purple-700',
+  'Fleet Manager':     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  'Dispatcher':        'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  'Safety Officer':    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  'Financial Analyst': 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
 };
 
 export function Header() {
   const { user, sidebarCollapsed, setSidebarCollapsed } = useApp();
+  const { theme, setTheme } = useTheme();
   const [search, setSearch] = useState('');
 
   if (!user) return null;
@@ -46,7 +48,17 @@ export function Header() {
         />
       </div>
 
-      <div className="ml-auto flex items-center gap-4">
+      <div className="ml-auto flex items-center gap-3">
+        {/* Dark mode toggle */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="w-9 h-9 rounded-lg bg-muted/50 border border-input flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 cursor-pointer"
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          <Sun className="w-[18px] h-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute w-[18px] h-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        </button>
+
         <button className="relative w-9 h-9 rounded-lg bg-muted/50 border border-input flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150 cursor-pointer">
           <Bell className="w-[18px] h-[18px]" />
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">3</span>

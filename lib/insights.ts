@@ -3,7 +3,6 @@ import type { Vehicle, Driver, Trip, MaintenanceRecord, FuelLog } from '@/lib/ty
 export interface Insight {
   id: string;
   type: 'warning' | 'alert' | 'info' | 'success';
-  icon: string;
   title: string;
   description: string;
   priority: number; // higher = show first
@@ -34,15 +33,13 @@ export function computeInsights(
 
   for (const driver of expiringDrivers) {
     const days = daysUntil(driver.expiry);
-    const type = days <= 7 ? 'alert' : 'warning';
-    insights.push({
-      id: `license-${driver.id}`,
-      type,
-      icon: '🪪',
-      title: `License expiring ${days <= 7 ? 'soon' : 'this month'}`,
-      description: `${driver.name}'s license (${driver.licenseNo}) expires in ${days} day${days !== 1 ? 's' : ''}. Expiry: ${driver.expiry}`,
-      priority: 100 - days,
-    });
+    const type = days <= 7 ? 'alert' : 'warning';      insights.push({
+        id: `license-${driver.id}`,
+        type,
+        title: `License expiring ${days <= 7 ? 'soon' : 'this month'}`,
+        description: `${driver.name}'s license (${driver.licenseNo}) expires in ${days} day${days !== 1 ? 's' : ''}. Expiry: ${driver.expiry}`,
+        priority: 100 - days,
+      });
   }
 
   // ── 2. Highest maintenance cost vehicle ──────────────────────────────
@@ -66,7 +63,6 @@ export function computeInsights(
       insights.push({
         id: 'maint-top',
         type: 'warning',
-        icon: '⚠️',
         title: 'Highest maintenance cost',
         description: `${topVehicle.regNo} (${topVehicle.name}) has accumulated $${topCost.toLocaleString()} in maintenance costs — the highest in the fleet.`,
         priority: 90,
@@ -79,7 +75,6 @@ export function computeInsights(
       insights.push({
         id: 'maint-active',
         type: 'info',
-        icon: '🔧',
         title: `${activeMaint.length} vehicle${activeMaint.length > 1 ? 's' : ''} in maintenance`,
         description: `${activeMaint.length} vehicle${activeMaint.length > 1 ? 's are' : ' is'} currently in the shop. Total estimated cost: $${activeMaint.reduce((s, m) => s + m.cost, 0).toLocaleString()}.`,
         priority: 75,
@@ -94,21 +89,17 @@ export function computeInsights(
 
   const availableVehicles = vehicles.filter(v => v.status === 'Available');
 
-  if (utilizationPct < 40) {
-    insights.push({
-      id: 'utilization-low',
-      type: 'warning',
-      icon: '📉',
-      title: `Fleet utilization at ${utilizationPct}%`,
+  if (utilizationPct < 40) {      insights.push({
+        id: 'utilization-low',
+        type: 'warning',
+        title: `Fleet utilization at ${utilizationPct}%`,
       description: `Only ${activeOnTrip} of ${nonRetired} vehicles are active. ${availableVehicles.length} vehicle${availableVehicles.length !== 1 ? 's are' : ' is'} available for dispatch.`,
       priority: 80,
     });
-  } else if (utilizationPct > 85) {
-    insights.push({
-      id: 'utilization-high',
-      type: 'info',
-      icon: '📈',
-      title: `Fleet utilization at ${utilizationPct}%`,
+  } else if (utilizationPct > 85) {      insights.push({
+        id: 'utilization-high',
+        type: 'info',
+        title: `Fleet utilization at ${utilizationPct}%`,
       description: `Fleet is highly utilized with ${activeOnTrip} of ${nonRetired} vehicles on the road. Monitor for maintenance scheduling.`,
       priority: 60,
     });
@@ -128,7 +119,6 @@ export function computeInsights(
       insights.push({
         id: `suggest-${v.id}`,
         type: 'success',
-        icon: '💡',
         title: 'Underutilized vehicle available',
         description: `${v.regNo} (${v.name}, ${v.capacity.toLocaleString()} kg capacity) has only been used on a few trips. Consider assigning for next dispatch to balance fleet usage.`,
         priority: 50,
@@ -160,7 +150,6 @@ export function computeInsights(
             insights.push({
               id: `fuel-${vid}`,
               type: 'warning',
-              icon: '⛽',
               title: `Fuel cost ${pctAbove}% above fleet average`,
               description: `${vehicle.regNo}'s fuel cost per liter is ${pctAbove}% higher than the fleet average ($${avgCostPerLiter.toFixed(2)}/L). Consider maintenance check.`,
               priority: 70,
@@ -183,7 +172,6 @@ export function computeInsights(
         insights.push({
           id: `maint-due-${m.id}`,
           type: 'alert',
-          icon: '🔔',
           title: 'Maintenance follow-up recommended',
           description: `${vehicle.regNo} had a "${m.serviceType}" ${Math.abs(daysUntil(m.date))} days ago. Schedule a follow-up check.`,
           priority: 65,
@@ -196,12 +184,10 @@ export function computeInsights(
   const availableDrivers = drivers.filter(d => d.status === 'Available').length;
   const pendingTrips = trips.filter(t => t.status === 'Draft' || t.status === 'Pending Approval').length;
 
-  if (availableDrivers === 0 && pendingTrips > 0) {
-    insights.push({
-      id: 'no-drivers',
-      type: 'alert',
-      icon: '🚨',
-      title: 'No available drivers',
+  if (availableDrivers === 0 && pendingTrips > 0) {      insights.push({
+        id: 'no-drivers',
+        type: 'alert',
+        title: 'No available drivers',
       description: `There ${pendingTrips > 1 ? 'are' : 'is'} ${pendingTrips} pending trip${pendingTrips > 1 ? 's' : ''} but no drivers available. Check driver schedules for availability.`,
       priority: 95,
     });

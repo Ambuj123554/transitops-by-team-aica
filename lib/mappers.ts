@@ -68,6 +68,16 @@ export interface ApiVehicle {
   status: string;
   createdAt: string;
   updatedAt: string;
+  documents?: ApiDocument[];
+}
+
+export interface ApiDocument {
+  id: string;
+  vehicleId: string;
+  name: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedAt: string;
 }
 
 export function mapVehicleFromApi(v: ApiVehicle) {
@@ -172,6 +182,8 @@ export function mapTripFromApi(t: ApiTrip) {
     destination: t.destination,
     cargoWeight: t.cargoWeightKg,
     plannedDistance: t.plannedDistanceKm,
+    actualDistance: t.actualDistanceKm ?? undefined,
+    revenue: t.revenue ?? undefined,
     status: mapStatusFromApi(t.status),
     eta: computeEta(t.status, t.dispatchedAt),
     createdAt: typeof t.createdAt === 'string' ? t.createdAt.split('T')[0] : t.createdAt,

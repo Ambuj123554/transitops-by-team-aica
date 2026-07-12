@@ -25,4 +25,7 @@ router.patch('/:id', requireRole('SAFETY_OFFICER'), driverController.update);
 // DELETE /api/drivers/:id — delete driver (SAFETY_OFFICER only)
 router.delete('/:id', requireRole('SAFETY_OFFICER'), driverController.remove);
 
+// Email reminders for expiring licenses — FLEET_MANAGER or SAFETY_OFFICER
+router.post('/reminders/expiring-licenses', requireRole('FLEET_MANAGER', 'SAFETY_OFFICER'), driverController.sendLicenseReminders);
+
 export default router;

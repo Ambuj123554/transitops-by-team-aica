@@ -78,10 +78,11 @@ model Vehicle {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  trips           Trip[]
+  trips              Trip[]
   maintenanceRecords MaintenanceRecord[]
   fuelLogs           FuelLog[]
   expenses           Expense[]
+  documents          VehicleDocument[]
 
   @@index([regNo])
   @@index([status])
@@ -190,4 +191,17 @@ model Expense {
 
   @@index([vehicleId])
   @@index([tripId])
+}
+
+model VehicleDocument {
+  id        String   @id @default(cuid())
+  vehicleId String
+  name      String
+  fileUrl   String
+  fileType  String
+  uploadedAt DateTime @default(now())
+
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
 }

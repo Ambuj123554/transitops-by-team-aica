@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const [vehicleType, setVehicleType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [region, setRegion] = useState('all');
+  const [advisorExpanded, setAdvisorExpanded] = useState(true);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
 
   const insights = useMemo(
@@ -89,46 +90,69 @@ export default function DashboardPage() {
         {/* AI Operations Advisor */}
         {visibleInsights.length > 0 && (
           <div className="card-modern overflow-hidden mb-6">
-            <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            <button
+              onClick={() => setAdvisorExpanded(!advisorExpanded)}
+              className="w-full px-5 py-3 border-b border-border flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer text-left"
+            >
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold">AI</span>
                 <h2 className="font-semibold text-foreground text-sm">Operations Advisor</h2>
-                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">Rule-based</span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-medium">
+                  {visibleInsights.length} insight{visibleInsights.length !== 1 ? 's' : ''}
+                </span>
               </div>
-              {dismissedInsights.length > 0 && (
-                <button
-                  onClick={() => setDismissedInsights([])}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  Reset all
-                </button>
-              )}
-            </div>
-            <div className="divide-y divide-border/50">
-              {visibleInsights.map((insight, idx) => (
-                <div
-                  key={insight.id}
-                  className={cn(
-                    'flex items-start gap-3 px-5 py-3 border-l-4 transition-all duration-200 hover:brightness-105 group',
-                    INSIGHT_BORDERS[insight.type]
-                  )}
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  <span className="text-base leading-5 mt-0.5 flex-shrink-0">{insight.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{insight.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{insight.description}</p>
-                  </div>
+              <div className="flex items-center gap-2">
+                {dismissedInsights.length > 0 && (
                   <button
-                    onClick={() => setDismissedInsights(prev => [...prev, insight.id])}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-background/80 cursor-pointer"
-                    title="Dismiss"
+                    onClick={e => { e.stopPropagation(); setDismissedInsights([]); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    Reset
                   </button>
-                </div>
-              ))}
-            </div>
+                )}
+                <svg
+                  className={cn(
+                    'w-4 h-4 text-muted-foreground transition-transform duration-200',
+                    advisorExpanded && 'rotate-180'
+                  )}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+            {advisorExpanded && (
+              <div className="divide-y divide-border/50">
+                {visibleInsights.map((insight, idx) => (
+                  <div
+                    key={insight.id}
+                    className={cn(
+                      'flex items-start gap-3 px-5 py-3 border-l-4 transition-all duration-200 hover:brightness-105 group',
+                      INSIGHT_BORDERS[insight.type]
+                    )}
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    <span className="flex-shrink-0 mt-0.5">
+                      {INSIGHT_ICONS[insight.type] ?? <Info className="w-4 h-4 text-slate-400" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{insight.description}</p>
+                    </div>
+                    <button
+                      onClick={() => setDismissedInsights(prev => [...prev, insight.id])}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-background/80 cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

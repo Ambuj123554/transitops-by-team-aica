@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Info } from 'lucide-react';
+import { Plus, Pencil, FileText, Trash2, Info, Upload, ExternalLink } from 'lucide-react';
 import { Vehicle, VehicleStatus } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -23,17 +23,23 @@ const vehicleSchema = z.object({
   capacity: z.coerce.number().positive('Must be positive'),
   odometer: z.coerce.number().min(0),
   acquisitionCost: z.coerce.number().positive('Must be positive'),
+  region: z.string().optional(),
   status: z.enum(['Available', 'On Trip', 'In Shop', 'Retired'] as const),
 });
 
 type VehicleForm = z.infer<typeof vehicleSchema>;
 
 export default function FleetPage() {
-  const { vehicles, createVehicle, updateVehicle } = useApp();
+  const { vehicles, createVehicle, updateVehicle, deleteVehicle } = useApp();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [open, setOpen] = useState(false);
+  const [docOpen, setDocOpen] = useState(false);
+  const [docVehicle, setDocVehicle] = useState<Vehicle | null>(null);
+  const [documents, setDocuments] = useState<{ id: string; name: string; fileUrl: string; fileType: string }[]>([]);
+  const [docName, setDocName] = useState('');
+  const [docUrl, setDocUrl] = useState('');
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,7 +60,19 @@ export default function FleetPage() {
 
   function openAdd() {
     setEditVehicle(null);
-    reset({ status: 'Available' });
+    reset({ status: 'Available', region: '' });
+    setOpen(true);
+  }
+
+  function openEdit(v: Vehicle) {
+    setEditVehicle(v);
+    reset({
+      regNo: v.regNo, name: v.name, type: v.type,
+      capacity: v.capacity, odometer: v.odometer,
+      acquisitionCost: v.acquisitionCost,
+      region: v.region || '',
+      status: v.status,
+    });
     setOpen(true);
   }
 
@@ -73,6 +91,16 @@ export default function FleetPage() {
       toast.error(err.message || 'Failed to save vehicle');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(id: string, regNo: string) {
+    if (!confirm(`Delete ${regNo}? This cannot be undone.`)) return;
+    try {
+      await deleteVehicle(id);
+      toast.success(`Vehicle ${regNo} deleted`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete vehicle');
     }
   }
 
@@ -126,7 +154,7 @@ export default function FleetPage() {
             <table className="table-modern">
               <thead>
                 <tr>
-                  {['Reg. No.', 'Name / Model', 'Type', 'Capacity (kg)', 'Odometer (km)', 'Acq. Cost', 'Status'].map(h => (
+                  {['Reg. No.', 'Name / Model', 'Type', 'Capacity', 'Odometer', 'Acq. Cost', 'Region', 'Status', 'Actions'].map(h => (
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
@@ -137,21 +165,47 @@ export default function FleetPage() {
                     <td className="font-mono text-xs font-semibold text-slate-700">{v.regNo}</td>
                     <td className="font-medium text-slate-900">{v.name}</td>
                     <td>{v.type}</td>
-                    <td>{v.capacity.toLocaleString()}</td>
-                    <td>{v.odometer.toLocaleString()}</td>
+                    <td>{v.capacity.toLocaleString()} kg</td>
+                    <td>{v.odometer.toLocaleString()} km</td>
                     <td>${v.acquisitionCost.toLocaleString()}</td>
+                    <td><span className="text-xs text-slate-500">{v.region || '—'}</span></td>
                     <td><StatusBadge status={v.status} /></td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEdit(v)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                          title="Edit vehicle"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { setDocVehicle(v); setDocOpen(true); }}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+                          title="Documents"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(v.id, v.regNo)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Delete vehicle"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400 text-sm">No vehicles match filters</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400 text-sm">No vehicles match filters</td></tr>
                 )}
               </tbody>
             </table>
           </div>
           <div className="px-5 py-3 bg-slate-50/60 border-t border-slate-100 flex items-start gap-2">
             <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-slate-400">Registration No. must be unique · Retired / In Shop vehicles are hidden from Trip Dispatcher</p>
+            <p className="text-xs text-slate-400">Registration No. must be unique · Click the edit icon to modify vehicle details · Upload documents (registration, insurance) via the document icon</p>
           </div>
         </div>
       </div>
@@ -194,24 +248,119 @@ export default function FleetPage() {
                 <Input {...register('acquisitionCost')} type="number" placeholder="50000" className="rounded-lg" />
                 {errors.acquisitionCost && <p className="text-xs text-red-600">{errors.acquisitionCost.message}</p>}
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Status</Label>
-              <Select defaultValue="Available" onValueChange={val => setValue('status', val as VehicleStatus)}>
-                <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Available">Available</SelectItem>
-                  <SelectItem value="On Trip">On Trip</SelectItem>
-                  <SelectItem value="In Shop">In Shop</SelectItem>
-                  <SelectItem value="Retired">Retired</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Region</Label>
+                <Input {...register('region')} placeholder="Gujarat, Mumbai..." className="rounded-lg" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Status</Label>
+                <Select
+                  defaultValue="Available"
+                  onValueChange={val => setValue('status', val as VehicleStatus)}
+                >
+                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Available">Available</SelectItem>
+                    <SelectItem value="On Trip">On Trip</SelectItem>
+                    <SelectItem value="In Shop">In Shop</SelectItem>
+                    <SelectItem value="Retired">Retired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
               <Button type="submit" disabled={submitting} className="rounded-lg cursor-pointer">{editVehicle ? 'Update' : 'Add Vehicle'}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Management Modal */}
+      <Dialog open={docOpen} onOpenChange={setDocOpen}>
+        <DialogContent className="max-w-lg rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Documents — {docVehicle?.regNo}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {/* Upload form */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Document name (e.g. Registration Cert)"
+                value={docName}
+                onChange={e => setDocName(e.target.value)}
+                className="flex-1 h-9 text-sm rounded-lg"
+              />
+              <Input
+                placeholder="File URL or paste link"
+                value={docUrl}
+                onChange={e => setDocUrl(e.target.value)}
+                className="flex-1 h-9 text-sm rounded-lg"
+              />
+              <Button
+                size="sm"
+                className="h-9 gap-1 rounded-lg cursor-pointer"
+                disabled={!docName || !docUrl}
+                onClick={() => {
+                  if (docName && docUrl) {
+                    setDocuments(prev => [...prev, { id: crypto.randomUUID(), name: docName, fileUrl: docUrl, fileType: docUrl.split('.').pop() || 'pdf' }]);
+                    setDocName('');
+                    setDocUrl('');
+                    toast.success('Document added');
+                  }
+                }}
+              >
+                <Upload className="w-3.5 h-3.5" /> Add
+              </Button>
+            </div>
+
+            {/* Document list */}
+            {documents.length === 0 ? (
+              <div className="rounded-lg border-2 border-dashed border-slate-200 p-8 text-center">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">No documents uploaded yet</p>
+                <p className="text-xs text-slate-400 mt-1">Add registration papers, insurance certificates, and permits</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {documents.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-blue-500" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">{doc.name}</p>
+                        <p className="text-xs text-slate-400">.{doc.fileType}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <a
+                        href={doc.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Open document"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        onClick={() => {
+                          setDocuments(prev => prev.filter(d => d.id !== doc.id));
+                          toast.success('Document removed');
+                        }}
+                        className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        title="Remove document"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDocOpen(false)} className="rounded-lg cursor-pointer">Close</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppLayout>

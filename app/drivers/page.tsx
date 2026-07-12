@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, AlertTriangle, Info } from 'lucide-react';
+import { Plus, Pencil, AlertTriangle, Info, Send, Mail } from 'lucide-react';
 import { DriverStatus } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -46,9 +46,11 @@ function SafetyBadge({ score }: { score: number }) {
 }
 
 export default function DriversPage() {
-  const { drivers, createDriver } = useApp();
+  const { drivers, createDriver, updateDriver } = useApp();
   const [search, setSearch] = useState('');
+  const [sendingReminders, setSendingReminders] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editDriver, setEditDriver] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<DriverForm>({
@@ -61,19 +63,56 @@ export default function DriversPage() {
     d.licenseNo.toLowerCase().includes(search.toLowerCase())
   );
 
+  async function handleSendReminders() {
+    setSendingReminders(true);
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_BASE}/api/drivers/reminders/expiring-licenses`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('transitops_token')}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.data.message);
+      } else {
+        toast.error(data.error?.message || 'Failed to send reminders');
+      }
+    } catch {
+      toast.error('Backend unavailable. Reminders logged to server console.');
+    } finally {
+      setSendingReminders(false);
+    }
+  }
+
   function openAdd() {
+    setEditDriver(null);
     reset({ status: 'Available', safetyScore: 80 });
+    setOpen(true);
+  }
+
+  function openEdit(d: any) {
+    setEditDriver(d);
+    reset({
+      name: d.name, licenseNo: d.licenseNo, category: d.category,
+      expiry: d.expiry, contact: d.contact,
+      safetyScore: d.safetyScore, status: d.status,
+    });
     setOpen(true);
   }
 
   async function onSubmit(data: DriverForm) {
     setSubmitting(true);
     try {
-      await createDriver(data);
-      toast.success('Driver profile created');
+      if (editDriver) {
+        await updateDriver(editDriver.id, data);
+        toast.success('Driver profile updated');
+      } else {
+        await createDriver(data);
+        toast.success('Driver profile created');
+      }
       setOpen(false);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create driver');
+      toast.error(err.message || 'Failed to save driver');
     } finally {
       setSubmitting(false);
     }
@@ -87,9 +126,14 @@ export default function DriversPage() {
             <h1 className="page-title">Drivers & Safety</h1>
             <p className="page-subtitle">Driver profiles and safety compliance</p>
           </div>
-          <Button onClick={openAdd} className="gap-2 rounded-lg cursor-pointer">
-            <Plus className="w-4 h-4" /> Add Driver
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={openAdd} className="gap-2 rounded-lg cursor-pointer">
+              <Plus className="w-4 h-4" /> Add Driver
+            </Button>
+            <Button variant="outline" className="gap-2 rounded-lg cursor-pointer" onClick={handleSendReminders}>
+              <Mail className="w-4 h-4" /> Send Reminders
+            </Button>
+          </div>
         </div>
 
         <Input
@@ -104,7 +148,7 @@ export default function DriversPage() {
             <table className="table-modern">
               <thead>
                 <tr>
-                  {['Driver', 'License No.', 'Category', 'Expiry', 'Contact', 'Trip Compl.', 'Safety', 'Status'].map(h => (
+                  {['Driver', 'License No.', 'Category', 'Expiry', 'Contact', 'Trip Compl.', 'Safety', 'Status', ''].map(h => (
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
@@ -131,11 +175,20 @@ export default function DriversPage() {
                       <td>{d.tripCompletion}%</td>
                       <td><SafetyBadge score={d.safetyScore} /></td>
                       <td><StatusBadge status={d.status} /></td>
+                      <td>
+                        <button
+                          onClick={() => openEdit(d)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                          title="Edit driver"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400 text-sm">No drivers found</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400 text-sm">No drivers found</td></tr>
                 )}
               </tbody>
             </table>
@@ -159,7 +212,7 @@ export default function DriversPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Add New Driver</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">{editDriver ? 'Edit Driver' : 'Add New Driver'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
@@ -207,7 +260,7 @@ export default function DriversPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
-              <Button type="submit" disabled={submitting} className="rounded-lg cursor-pointer">Add Driver</Button>
+              <Button type="submit" disabled={submitting} className="rounded-lg cursor-pointer">{editDriver ? 'Update' : 'Add Driver'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

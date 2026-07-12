@@ -5,6 +5,15 @@ export type DriverStatus = 'Available' | 'On Trip' | 'Off Duty' | 'Suspended';
 export type TripStatus = 'Draft' | 'Pending Approval' | 'Dispatched' | 'Completed' | 'Cancelled';
 export type MaintenanceStatus = 'Active' | 'Completed';
 
+export interface DocumentRecord {
+  id: string;
+  vehicleId: string;
+  name: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedAt: string;
+}
+
 export interface Vehicle {
   id: string;
   regNo: string;
@@ -14,6 +23,7 @@ export interface Vehicle {
   odometer: number;
   acquisitionCost: number;
   status: VehicleStatus;
+  region?: string;
 }
 
 export interface Driver {
@@ -36,6 +46,8 @@ export interface Trip {
   destination: string;
   cargoWeight: number;
   plannedDistance: number;
+  actualDistance?: number;
+  revenue?: number;
   status: TripStatus;
   eta: string;
   createdAt: string;

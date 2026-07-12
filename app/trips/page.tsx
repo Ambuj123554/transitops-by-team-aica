@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertTriangle, CheckCircle2, Info, ArrowRight, ShieldCheck, Send, ThumbsUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, ArrowRight, ShieldCheck, Send, ThumbsUp, Flag } from 'lucide-react';
 import { TripStatus } from '@/lib/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -62,16 +62,18 @@ function LifecycleStepper({ current }: { current: TripStatus }) {
   );
 }
 
-function TripCard({ trip, vehicleMap, driverMap, onApprove, currentRole }: {
+function TripCard({ trip, vehicleMap, driverMap, onApprove, onComplete, currentRole }: {
   trip: { id: string; vehicleId: string; driverId: string | null; source: string; destination: string; status: string; eta: string };
   vehicleMap: Record<string, { regNo: string; name: string }>;
   driverMap: Record<string, { name: string }>;
   onApprove?: (id: string) => void;
+  onComplete?: (id: string) => void;
   currentRole?: string;
 }) {
   const vehicle = vehicleMap[trip.vehicleId];
   const driver = trip.driverId ? driverMap[trip.driverId] : null;
   const isPending = trip.status === 'Pending Approval';
+  const isDispatched = trip.status === 'Dispatched';
   const isFleetManager = currentRole === 'Fleet Manager';
 
   return (
@@ -79,6 +81,8 @@ function TripCard({ trip, vehicleMap, driverMap, onApprove, currentRole }: {
       'p-4 rounded-xl border transition-all duration-200 space-y-2.5 shadow-sm',
       isPending
         ? 'border-purple-300 bg-purple-50/40 ring-1 ring-purple-200/50'
+        : isDispatched
+        ? 'border-blue-300 bg-blue-50/30 ring-1 ring-blue-200/50'
         : 'border-slate-200/80 bg-white hover:border-slate-300'
     )}>
       <div className="flex items-center justify-between">
@@ -97,28 +101,99 @@ function TripCard({ trip, vehicleMap, driverMap, onApprove, currentRole }: {
       </div>
       <div className="flex items-center justify-between">
         <span className="text-xs text-slate-400">ETA: {trip.eta}</span>
-        {isPending && isFleetManager && onApprove && (
-          <Button
-            size="sm"
-            onClick={() => onApprove(trip.id)}
-            className="h-7 text-xs gap-1 rounded-lg cursor-pointer bg-purple-600 hover:bg-purple-700"
-          >
-            <ThumbsUp className="w-3 h-3" />
-            Approve
-          </Button>
-        )}
+        <div className="flex gap-1.5">
+          {isDispatched && onComplete && (
+            <Button
+              size="sm"
+              onClick={() => onComplete(trip.id)}
+              className="h-7 text-xs gap-1 rounded-lg cursor-pointer bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Flag className="w-3 h-3" />
+              Complete
+            </Button>
+          )}
+          {isPending && isFleetManager && onApprove && (
+            <Button
+              size="sm"
+              onClick={() => onApprove(trip.id)}
+              className="h-7 text-xs gap-1 rounded-lg cursor-pointer bg-purple-600 hover:bg-purple-700"
+            >
+              <ThumbsUp className="w-3 h-3" />
+              Approve
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompleteTripModal({ open, onClose, tripId, onSubmit }: {
+  open: boolean; onClose: () => void;
+  tripId: string; onSubmit: (data: any) => Promise<void>;
+}) {
+  const [formData, setFormData] = useState({ actualDistanceKm: 0, finalOdometer: 0, fuelConsumedLiters: 0, revenue: 0 });
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSubmit({ ...formData, tripId });
+      onClose();
+    } catch { setSaving(false); }
+  }
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">Complete Trip — {tripId}</h3>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Actual Distance (km)</Label>
+              <Input type="number" required min={1} value={formData.actualDistanceKm}
+                onChange={e => setFormData(f => ({ ...f, actualDistanceKm: +e.target.value }))}
+                className="h-9 rounded-lg text-sm" placeholder="450" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Final Odometer (km)</Label>
+              <Input type="number" required min={1} value={formData.finalOdometer}
+                onChange={e => setFormData(f => ({ ...f, finalOdometer: +e.target.value }))}
+                className="h-9 rounded-lg text-sm" placeholder="145230" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Fuel Consumed (L)</Label>
+              <Input type="number" min={0} value={formData.fuelConsumedLiters}
+                onChange={e => setFormData(f => ({ ...f, fuelConsumedLiters: +e.target.value }))}
+                className="h-9 rounded-lg text-sm" placeholder="180" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Revenue ($)</Label>
+              <Input type="number" min={0} value={formData.revenue}
+                onChange={e => setFormData(f => ({ ...f, revenue: +e.target.value }))}
+                className="h-9 rounded-lg text-sm" placeholder="2500" />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-lg cursor-pointer">Cancel</Button>
+            <Button type="submit" disabled={saving} className="flex-1 rounded-lg cursor-pointer">{saving ? 'Completing...' : 'Complete Trip'}</Button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
 
 export default function TripsPage() {
-  const { user, vehicles, drivers, trips, createTrip, requestApproval, approveTrip, dispatchTrip } = useApp();
+  const { user, vehicles, drivers, trips, createTrip, requestApproval, approveTrip, dispatchTrip, completeTrip } = useApp();
   const [currentStage] = useState<TripStatus>('Draft');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<'dispatch' | 'approval'>('approval');
+  const [completeTripId, setCompleteTripId] = useState<string | null>(null);
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<TripForm>({
     resolver: zodResolver(tripSchema),
@@ -178,6 +253,21 @@ export default function TripsPage() {
       toast.success(`Trip ${tripId} approved and dispatched`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to approve trip');
+    }
+  }
+
+  async function handleComplete(data: any) {
+    try {
+      await completeTrip(data.tripId, {
+        actualDistanceKm: data.actualDistanceKm,
+        finalOdometer: data.finalOdometer,
+        fuelConsumedLiters: data.fuelConsumedLiters || undefined,
+        revenue: data.revenue || undefined,
+      });
+      toast.success(`Trip ${data.tripId} completed`);
+      setCompleteTripId(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to complete trip');
     }
   }
 
@@ -373,14 +463,14 @@ export default function TripsPage() {
                 </div>
                 <div className="p-3 space-y-2">
                   {pendingApprovalTrips.map(trip => (
-                    <TripCard
-                      key={trip.id}
-                      trip={trip}
-                      vehicleMap={vehicleMap}
-                      driverMap={driverMap}
-                      onApprove={handleApprove}
-                      currentRole={user?.role}
-                    />
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  vehicleMap={vehicleMap}
+                  driverMap={driverMap}
+                  onApprove={handleApprove}                    onComplete={(id: string) => setCompleteTripId(id)}
+                    currentRole={user?.role}
+                />
                   ))}
                 </div>
               </div>
@@ -393,6 +483,7 @@ export default function TripsPage() {
                   trip={trip}
                   vehicleMap={vehicleMap}
                   driverMap={driverMap}
+                  onComplete={(id: string) => setCompleteTripId(id)}
                 />
               ))}
               {trips.length === 0 && (
@@ -401,11 +492,21 @@ export default function TripsPage() {
             </div>
             <div className="px-5 py-3 border-t border-slate-200/80 bg-white rounded-b-xl flex items-start gap-2">
               <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-slate-400">Approval flow: Draft → Pending Approval → Dispatched. Fleet Manager approves. On Complete: odometer → fuel log → expenses → Available.</p>
+              <p className="text-xs text-slate-400">Approval flow: Draft → Pending Approval → Dispatched → Completed. Fleet Manager approves. Click Complete to finalize trip.</p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Complete Trip Modal */}
+      {completeTripId && (
+        <CompleteTripModal
+          open={true}
+          onClose={() => setCompleteTripId(null)}
+          tripId={completeTripId}
+          onSubmit={handleComplete}
+        />
+      )}
     </AppLayout>
   );
 }

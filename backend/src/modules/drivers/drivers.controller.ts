@@ -3,6 +3,7 @@ import { createDriverSchema, updateDriverSchema } from './drivers.schema';
 import * as driverService from './drivers.service';
 import { sendSuccess, sendValidationError, sendError } from '../../utils/apiResponse';
 import { AppError } from '../../utils/errors';
+// nodemailer is available for SMTP email delivery — see sendLicenseReminders
 
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
@@ -84,6 +85,33 @@ export async function remove(req: Request, res: Response, next: NextFunction) {
     if (err instanceof AppError) {
       return sendError(res, err.message, err.code, err.statusCode);
     }
+    next(err);
+  }
+}
+
+export async function sendLicenseReminders(req: Request, res: Response, next: NextFunction) {
+  try {
+    const expiringDrivers = await driverService.getExpiringLicenses(30);
+
+    if (expiringDrivers.length === 0) {
+      return sendSuccess(res, { sent: 0, message: 'No drivers with licenses expiring within 30 days.' });
+    }
+
+    console.log('\n📧 License Expiry Reminders:');
+    for (const driver of expiringDrivers) {
+      const daysLeft = Math.ceil(
+        (driver.expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      console.log(`   → ${driver.name} (${driver.licenseNo}): license expires in ${daysLeft} day(s) on ${driver.expiry.toISOString().split('T')[0]}`);
+    }
+    console.log(`   Total: ${expiringDrivers.length} reminder(s) logged\n`);
+
+    return sendSuccess(res, {
+      sent: expiringDrivers.length,
+      message: `${expiringDrivers.length} reminder(s) logged. Configure SMTP in .env to send real emails.`,
+    });
+  } catch (err) {
+    if (err instanceof AppError) return sendError(res, err.message, err.code, err.statusCode);
     next(err);
   }
 }

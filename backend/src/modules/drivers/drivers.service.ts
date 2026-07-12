@@ -1,6 +1,7 @@
 import { prisma } from '../../db/prisma/client';
 import { ConflictError, NotFoundError } from '../../utils/errors';
 import type { CreateDriverInput, UpdateDriverInput } from './drivers.schema';
+import type { Driver } from '@prisma/client';
 
 export async function listDrivers(search?: string, status?: string) {
   const where: any = {};
@@ -23,7 +24,7 @@ export async function listDrivers(search?: string, status?: string) {
 
   const now = new Date();
 
-  return drivers.map((driver) => ({
+  return drivers.map((driver: Driver) => ({
     id: driver.id,
     name: driver.name,
     licenseNumber: driver.licenseNo,
@@ -78,10 +79,10 @@ export async function getAvailableDrivers() {
     orderBy: { name: 'asc' },
   });
 
-  return drivers.map((driver) => ({
+  return drivers.map((driver: { id: string; name: string; category: string | null }) => ({
     id: driver.id,
     name: driver.name,
-    licenseCategory: driver.category,
+    licenseCategory: driver.category || '',
   }));
 }
 
@@ -169,6 +170,26 @@ export async function updateDriver(id: string, input: UpdateDriverInput) {
     createdAt: driver.createdAt,
     updatedAt: driver.updatedAt,
   };
+}
+
+export async function getExpiringLicenses(daysAhead: number = 30) {
+  const now = new Date();
+  const future = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+
+  return prisma.driver.findMany({
+    where: {
+      expiry: { gte: now, lte: future },
+      status: { not: 'SUSPENDED' },
+    },
+    select: {
+      id: true,
+      name: true,
+      licenseNo: true,
+      expiry: true,
+      contact: true,
+    },
+    orderBy: { expiry: 'asc' },
+  });
 }
 
 export async function deleteDriver(id: string) {
