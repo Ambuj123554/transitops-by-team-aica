@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowRight, Info } from 'lucide-react';
-import { MaintenanceRecord, MaintenanceStatus } from '@/lib/types';
+import { MaintenanceStatus } from '@/lib/types';
 import { toast } from 'sonner';
 
 const maintenanceSchema = z.object({
@@ -26,8 +26,9 @@ const maintenanceSchema = z.object({
 type MaintenanceForm = z.infer<typeof maintenanceSchema>;
 
 export default function MaintenancePage() {
-  const { vehicles, setVehicles, maintenance, setMaintenance } = useApp();
+  const { vehicles, maintenance, createMaintenance } = useApp();
   const [statusVehicle, setStatusVehicle] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<MaintenanceForm>({
     resolver: zodResolver(maintenanceSchema),
@@ -38,26 +39,18 @@ export default function MaintenancePage() {
 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
 
-  function onSubmit(data: MaintenanceForm) {
-    const record: MaintenanceRecord = { id: `m${Date.now()}`, ...data };
-    setMaintenance(prev => [record, ...prev]);
-
-    if (data.status === 'Active') {
-      setVehicles(prev => prev.map(v =>
-        v.id === data.vehicleId ? { ...v, status: 'In Shop' } : v
-      ));
-    } else {
-      const vehicle = vehicleMap[data.vehicleId];
-      if (vehicle?.status === 'In Shop') {
-        setVehicles(prev => prev.map(v =>
-          v.id === data.vehicleId ? { ...v, status: 'Available' } : v
-        ));
-      }
+  async function onSubmit(data: MaintenanceForm) {
+    setSubmitting(true);
+    try {
+      await createMaintenance(data);
+      toast.success('Service record saved');
+      reset({ status: 'Active', date: new Date().toISOString().split('T')[0] });
+      setStatusVehicle('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save service record');
+    } finally {
+      setSubmitting(false);
     }
-
-    toast.success('Service record saved');
-    reset({ status: 'Active', date: new Date().toISOString().split('T')[0] });
-    setStatusVehicle('');
   }
 
   return (
@@ -129,7 +122,9 @@ export default function MaintenancePage() {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full h-10 rounded-lg cursor-pointer">Save Service Record</Button>
+              <Button type="submit" disabled={submitting} className="w-full h-10 rounded-lg cursor-pointer">
+                {submitting ? 'Saving...' : 'Save Service Record'}
+              </Button>
             </form>
 
             {/* Status transition rules */}

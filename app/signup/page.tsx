@@ -90,7 +90,7 @@ export default function SignupPage() {
       phone: data.phone || undefined,
       employeeId: data.employeeId,
     };
-    const result = registerUser(userData);
+    const result = await registerUser(userData);
     if (result.success) {
       router.push('/dashboard');
     } else {

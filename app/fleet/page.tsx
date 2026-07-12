@@ -29,12 +29,13 @@ const vehicleSchema = z.object({
 type VehicleForm = z.infer<typeof vehicleSchema>;
 
 export default function FleetPage() {
-  const { vehicles, setVehicles } = useApp();
+  const { vehicles, createVehicle, updateVehicle } = useApp();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [open, setOpen] = useState(false);
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<VehicleForm>({
     resolver: zodResolver(vehicleSchema),
@@ -57,21 +58,22 @@ export default function FleetPage() {
     setOpen(true);
   }
 
-  function onSubmit(data: VehicleForm) {
-    if (editVehicle) {
-      setVehicles(prev => prev.map(v => v.id === editVehicle.id ? { ...editVehicle, ...data } : v));
-      toast.success('Vehicle updated');
-    } else {
-      const duplicate = vehicles.find(v => v.regNo.toLowerCase() === data.regNo.toLowerCase());
-      if (duplicate) {
-        toast.error('Registration number already exists');
-        return;
+  async function onSubmit(data: VehicleForm) {
+    setSubmitting(true);
+    try {
+      if (editVehicle) {
+        await updateVehicle(editVehicle.id, data);
+        toast.success('Vehicle updated');
+      } else {
+        await createVehicle(data);
+        toast.success('Vehicle added to fleet');
       }
-      const newVehicle: Vehicle = { id: `v${Date.now()}`, ...data };
-      setVehicles(prev => [...prev, newVehicle]);
-      toast.success('Vehicle added to fleet');
+      setOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save vehicle');
+    } finally {
+      setSubmitting(false);
     }
-    setOpen(false);
   }
 
   return (
@@ -207,7 +209,7 @@ export default function FleetPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
-              <Button type="submit" className="rounded-lg cursor-pointer">{editVehicle ? 'Update' : 'Add Vehicle'}</Button>
+              <Button type="submit" disabled={submitting} className="rounded-lg cursor-pointer">{editVehicle ? 'Update' : 'Add Vehicle'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
