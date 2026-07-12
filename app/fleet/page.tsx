@@ -40,6 +40,67 @@ export default function FleetPage() {
   const [documents, setDocuments] = useState<{ id: string; name: string; fileUrl: string; fileType: string }[]>([]);
   const [docName, setDocName] = useState('');
   const [docUrl, setDocUrl] = useState('');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+  function getToken() {
+    return typeof window !== 'undefined' ? localStorage.getItem('transitops_token') : null;
+  }
+
+  async function loadDocuments(vehicleId: string) {
+    try {
+      const res = await fetch(`${API_BASE}/api/documents?vehicleId=${vehicleId}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDocuments(data.data);
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
+  async function addDocument() {
+    if (!docName || !docUrl || !docVehicle) return;
+    setUploadingDoc(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/documents`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vehicleId: docVehicle.id, name: docName, fileUrl: docUrl, fileType: docUrl.split('.').pop() || 'pdf' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDocuments(prev => [...prev, data.data]);
+        setDocName('');
+        setDocUrl('');
+        toast.success('Document added');
+      } else {
+        toast.error(data.error?.message || 'Failed to add document');
+      }
+    } catch {
+      toast.error('Failed to add document');
+    } finally {
+      setUploadingDoc(false);
+    }
+  }
+
+  async function removeDocument(docId: string) {
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/${docId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDocuments(prev => prev.filter(d => d.id !== docId));
+        toast.success('Document removed');
+      }
+    } catch {
+      toast.error('Failed to remove document');
+    }
+  }
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -180,7 +241,7 @@ export default function FleetPage() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => { setDocVehicle(v); setDocOpen(true); }}
+                          onClick={() => { setDocVehicle(v); setDocOpen(true); loadDocuments(v.id); }}
                           className="p-1.5 rounded-md text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
                           title="Documents"
                         >
@@ -300,15 +361,8 @@ export default function FleetPage() {
               <Button
                 size="sm"
                 className="h-9 gap-1 rounded-lg cursor-pointer"
-                disabled={!docName || !docUrl}
-                onClick={() => {
-                  if (docName && docUrl) {
-                    setDocuments(prev => [...prev, { id: crypto.randomUUID(), name: docName, fileUrl: docUrl, fileType: docUrl.split('.').pop() || 'pdf' }]);
-                    setDocName('');
-                    setDocUrl('');
-                    toast.success('Document added');
-                  }
-                }}
+                disabled={!docName || !docUrl || uploadingDoc}
+                onClick={addDocument}
               >
                 <Upload className="w-3.5 h-3.5" /> Add
               </Button>
@@ -343,10 +397,7 @@ export default function FleetPage() {
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <button
-                        onClick={() => {
-                          setDocuments(prev => prev.filter(d => d.id !== doc.id));
-                          toast.success('Document removed');
-                        }}
+                        onClick={() => removeDocument(doc.id)}
                         className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Remove document"
                       >
