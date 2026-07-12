@@ -1,12 +1,7 @@
 import { prisma } from '../../db/prisma/client';
-import type { KpiQueryInput } from './dashboard-analytics.schema';
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Local helper (duplicated within module per spec guidance) ───────────────
 
-/**
- * Compute total cost (fuel + maintenance + expenses) per vehicle.
- * Defined locally to keep modules independent — duplicated logic is acceptable.
- */
 async function computeVehicleCosts(): Promise<Record<string, number>> {
   const fuelAgg = await prisma.fuelLog.groupBy({
     by: ['vehicleId'],
@@ -36,113 +31,9 @@ async function computeVehicleCosts(): Promise<Record<string, number>> {
   return costMap;
 }
 
-/**
- * Build a Prisma `where` clause from the optional KPI filters.
- */
-function buildVehicleWhere(filters: KpiQueryInput): any {
-  const where: any = {};
-  if (filters.vehicleType && filters.vehicleType !== 'all') {
-    where.type = filters.vehicleType;
-  }
-  if (filters.status && filters.status !== 'all') {
-    where.status = filters.status;
-  }
-  if (filters.region && filters.region !== 'all') {
-    where.region = filters.region;
-  }
-  return where;
-}
-
-// ── Dashboard Endpoints ─────────────────────────────────────────────────────
-
-export async function getKpis(filters: KpiQueryInput, userRole?: string) {
-  const vehicleWhere = buildVehicleWhere(filters);
-
-  const allVehicles = await prisma.vehicle.findMany({ where: vehicleWhere });
-  const activeTripsCount = await prisma.trip.count({ where: { status: 'DISPATCHED' } });
-  const pendingTripsCount = await prisma.trip.count({ where: { status: 'DRAFT' } });
-  const driversOnDuty = await prisma.driver.count({ where: { status: 'ON_TRIP' } });
-
-  const activeVehicles = allVehicles.filter(v => v.status === 'ON_TRIP').length;
-  const availableVehicles = allVehicles.filter(v => v.status === 'AVAILABLE').length;
-  const vehiclesInMaintenance = allVehicles.filter(v => v.status === 'IN_SHOP').length;
-  const nonRetired = allVehicles.filter(v => v.status !== 'RETIRED').length;
-  const fleetUtilizationPct = nonRetired > 0
-    ? Math.round((activeVehicles / nonRetired) * 1000) / 10
-    : 0;
-
-  const fullResult = {
-    activeVehicles,
-    availableVehicles,
-    vehiclesInMaintenance,
-    activeTrips: activeTripsCount,
-    pendingTrips: pendingTripsCount,
-    driversOnDuty,
-    fleetUtilizationPct,
-  };
-
-  // Role-based response shaping per RBAC matrix
-  if (userRole === 'DISPATCHER') {
-    return {
-      activeTrips: fullResult.activeTrips,
-      pendingTrips: fullResult.pendingTrips,
-      driversOnDuty: fullResult.driversOnDuty,
-    };
-  }
-  if (userRole === 'FINANCIAL_ANALYST') {
-    return {
-      fleetUtilizationPct: fullResult.fleetUtilizationPct,
-    };
-  }
-  if (userRole === 'SAFETY_OFFICER') {
-    return {
-      driversOnDuty: fullResult.driversOnDuty,
-      activeVehicles: fullResult.activeVehicles,
-    };
-  }
-
-  // FLEET_MANAGER (and fallback) sees everything
-  return fullResult;
-}
-
-export async function getRecentTrips() {
-  return prisma.trip.findMany({
-    take: 10,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      vehicle: { select: { id: true, regNo: true, name: true } },
-      driver: { select: { id: true, name: true } },
-    },
-  });
-}
-
-export async function getVehicleStatusBreakdown() {
-  const counts = await prisma.vehicle.groupBy({
-    by: ['status'],
-    _count: { id: true },
-  });
-
-  const breakdown: Record<string, number> = {
-    AVAILABLE: 0,
-    ON_TRIP: 0,
-    IN_SHOP: 0,
-    RETIRED: 0,
-  };
-
-  for (const row of counts) {
-    breakdown[row.status] = row._count.id;
-  }
-
-  return Object.entries(breakdown).map(([status, count]) => ({
-    status,
-    count,
-  }));
-}
-
-// ── Analytics Endpoints ────────────────────────────────────────────────────
+// ── Endpoints ───────────────────────────────────────────────────────────────
 
 export async function getSummary(userRole?: string) {
-  // Fuel efficiency: total completed trip distance / total fuel liters
   const completedTrips = await prisma.trip.findMany({
     where: { status: 'COMPLETED' },
     select: { actualDistanceKm: true },
@@ -158,7 +49,6 @@ export async function getSummary(userRole?: string) {
     ? Math.round((totalDistance / totalLiters) * 100) / 100
     : 0;
 
-  // Fleet utilization
   const allVehicles = await prisma.vehicle.findMany({ select: { status: true } });
   const nonRetired = allVehicles.filter(v => v.status !== 'RETIRED').length;
   const onTrip = allVehicles.filter(v => v.status === 'ON_TRIP').length;
@@ -166,7 +56,6 @@ export async function getSummary(userRole?: string) {
     ? Math.round((onTrip / nonRetired) * 1000) / 10
     : 0;
 
-  // Operational cost: sum of all fuel + maintenance + expenses
   const fuelCostAgg = await prisma.fuelLog.aggregate({ _sum: { cost: true } });
   const maintCostAgg = await prisma.maintenanceRecord.aggregate({ _sum: { cost: true } });
   const expenseCostAgg = await prisma.expense.aggregate({ _sum: { total: true } });
@@ -175,7 +64,6 @@ export async function getSummary(userRole?: string) {
     (maintCostAgg._sum.cost || 0) +
     (expenseCostAgg._sum.total || 0);
 
-  // Vehicle ROI: average across vehicles of ((revenue - (maint + fuel)) / acquisitionCost) * 100
   const vehicles = await prisma.vehicle.findMany({
     select: { id: true, acquisitionCost: true },
   });
@@ -209,7 +97,6 @@ export async function getSummary(userRole?: string) {
 
   const result: Record<string, any> = {};
 
-  // Role-based response shaping per RBAC matrix
   if (userRole === 'FLEET_MANAGER' || userRole === 'FINANCIAL_ANALYST') {
     result.fuelEfficiencyKmPerL = fuelEfficiencyKmPerL;
     result.fleetUtilizationPct = fleetUtilizationPct;
@@ -220,7 +107,6 @@ export async function getSummary(userRole?: string) {
   } else if (userRole === 'SAFETY_OFFICER') {
     result.fleetUtilizationPct = fleetUtilizationPct;
   } else {
-    // Fallback: return all
     result.fuelEfficiencyKmPerL = fuelEfficiencyKmPerL;
     result.fleetUtilizationPct = fleetUtilizationPct;
     result.operationalCost = operationalCost;
@@ -231,7 +117,6 @@ export async function getSummary(userRole?: string) {
 }
 
 export async function getMonthlyRevenue() {
-  // Last 6 months
   const now = new Date();
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
@@ -243,7 +128,6 @@ export async function getMonthlyRevenue() {
     select: { revenue: true, completedAt: true },
   });
 
-  // Build a map of the last 6 months
   const monthMap: Record<string, number> = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -292,7 +176,6 @@ export async function getExportCsvData() {
     orderBy: { createdAt: 'desc' },
   });
 
-  // Aggregate fuel costs by trip
   const fuelCostsByTrip = await prisma.fuelLog.groupBy({
     by: ['tripId'],
     where: { tripId: { not: null } },
@@ -334,7 +217,6 @@ export function formatCsv(data: any[]): string {
     const vals = headers.map(h => {
       const v = row[h];
       let s = String(v ?? '');
-      // Escape double quotes and wrap in quotes if contains comma, quote, or newline
       if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
         s = s.replace(/"/g, '""');
         s = `"${s}"`;
