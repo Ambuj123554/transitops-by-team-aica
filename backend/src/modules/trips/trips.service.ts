@@ -110,7 +110,6 @@ export async function dispatchTrip(id: string, input: DispatchTripInput) {
         dispatchedAt: new Date(),
         vehicleId: input.vehicleId,
         driverId: input.driverId,
-        eta: 'En route',
       },
       include: {
         vehicle: { select: { id: true, regNo: true, name: true } },
@@ -149,7 +148,6 @@ export async function completeTrip(id: string, input: CompleteTripInput) {
         status: 'COMPLETED',
         completedAt: new Date(),
         actualDistanceKm: input.actualDistanceKm,
-        finalOdometer: input.finalOdometer,
         revenue: input.revenue ?? null,
       },
       include: {
