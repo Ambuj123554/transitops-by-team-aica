@@ -23,6 +23,8 @@ interface AppContextType {
   register: (data: RegisteredUser) => { success: boolean; error?: string };
   logout: () => void;
   failedAttempts: number;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 
   vehicles: Vehicle[];
   setVehicles: React.Dispatch<React.SetStateAction<Vehicle[]>>;
@@ -77,6 +79,7 @@ function saveRegisteredUsers(users: RegisteredUser[]) {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
   const [drivers, setDrivers] = useState<Driver[]>(mockDrivers);
   const [trips, setTrips] = useState<Trip[]>(mockTrips);
@@ -144,7 +147,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      user, login, register, logout, failedAttempts,
+      user, login, register, logout, failedAttempts, sidebarCollapsed, setSidebarCollapsed,
       vehicles, setVehicles,
       drivers, setDrivers,
       trips, setTrips,

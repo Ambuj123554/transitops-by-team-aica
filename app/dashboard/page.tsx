@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="card-modern p-5 flex flex-col gap-1 transition-all duration-200 hover:shadow-[0_4px_12px_0_rgb(0_0_0/0.06)]">
-      <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
-      <p className="text-2xl font-bold tracking-tight text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-400">{sub}</p>}
+    <div className="card-modern p-5 flex flex-col gap-1">
+      <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
+      {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
     </div>
   );
 }
@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<string, string> = {
   Available: 'bg-emerald-500',
   'On Trip': 'bg-blue-500',
   'In Shop': 'bg-amber-500',
-  Retired: 'bg-slate-400',
+  Retired: 'bg-muted-foreground/40',
 };
 
 export default function DashboardPage() {
@@ -114,8 +114,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Trips */}
           <div className="lg:col-span-2 card-modern overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100">
-              <h2 className="font-semibold text-slate-900">Recent Trips</h2>
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="font-semibold text-foreground">Recent Trips</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="table-modern">
@@ -134,9 +134,9 @@ export default function DashboardPage() {
                     const driver = trip.driverId ? driverMap[trip.driverId] : null;
                     return (
                       <tr key={trip.id}>
-                        <td className="font-mono text-xs font-semibold text-slate-700">{trip.id}</td>
+                        <td className="font-mono text-xs font-semibold text-foreground">{trip.id}</td>
                         <td>{vehicle?.regNo ?? '—'}</td>
-                        <td>{driver?.name ?? <span className="text-slate-400">Unassigned</span>}</td>
+                        <td>{driver?.name ?? <span className="text-muted-foreground">Unassigned</span>}</td>
                         <td><StatusBadge status={trip.status} /></td>
                         <td>{trip.eta}</td>
                       </tr>
@@ -149,17 +149,17 @@ export default function DashboardPage() {
 
           {/* Vehicle Status */}
           <div className="card-modern">
-            <div className="px-5 py-4 border-b border-slate-100">
-              <h2 className="font-semibold text-slate-900">Vehicle Status</h2>
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="font-semibold text-foreground">Vehicle Status</h2>
             </div>
             <div className="px-5 py-4 space-y-4">
               {vehicleStatusCounts.map(({ label, count, color }) => (
                 <div key={label}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-slate-600">{label}</span>
-                    <span className="text-sm font-semibold text-slate-900">{count}</span>
+                    <span className="text-sm text-foreground/80">{label}</span>
+                    <span className="text-sm font-semibold text-foreground">{count}</span>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${color}`}
                       style={{ width: `${(count / maxCount) * 100}%` }}
@@ -167,8 +167,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-xs text-slate-400">Total fleet: {vehicles.length} vehicles</p>
+              <div className="pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground">Total fleet: {vehicles.length} vehicles</p>
               </div>
             </div>
           </div>
