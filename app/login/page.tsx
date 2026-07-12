@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Bus, AlertCircle, Lock } from 'lucide-react';
+import { AlertCircle, Lock, UserPlus } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,11 +58,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left column */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-slate-900 p-12 text-white">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
-            <Bus className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight">TransitOps</span>
+        <div className="mb-6">
+          <span className="text-2xl font-bold tracking-tight">TransitOps</span>
         </div>
 
         <div>
@@ -174,6 +172,19 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 Sign In
               </Button>
+
+              <div className="text-center">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors group"
+                >
+                  <UserPlus className="w-3.5 h-3.5 group-hover:text-blue-600 transition-colors" />
+                  <span>
+                    Don&apos;t have an account?{' '}
+                    <span className="font-medium text-blue-600 group-hover:underline">Sign up</span>
+                  </span>
+                </Link>
+              </div>
 
               {failedAttempts > 0 && failedAttempts < 5 && (
                 <p className="text-xs text-amber-600 text-center">

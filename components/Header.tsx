@@ -21,7 +21,7 @@ export function Header() {
   const roleColor = ROLE_COLORS[user.role] ?? 'bg-slate-100 text-slate-700';
 
   return (
-    <header className="fixed top-0 left-56 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-6 gap-4 z-30">
+    <header className="fixed top-0 left-64 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-6 gap-4 z-30">
       <div className="relative flex-1 max-w-xs">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <Input

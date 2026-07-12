@@ -7,9 +7,20 @@ import {
   mockMaintenance, mockFuelLogs, mockExpenses,
 } from '@/lib/mock-data';
 
+export interface RegisteredUser {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  company: string;
+  phone?: string;
+  employeeId: string;
+}
+
 interface AppContextType {
   user: AppUser | null;
   login: (email: string, password: string, role: Role) => boolean;
+  register: (data: RegisteredUser) => { success: boolean; error?: string };
   logout: () => void;
   failedAttempts: number;
 
@@ -42,8 +53,25 @@ const MOCK_USERS: Record<string, { name: string; password: string }> = {
   'demo@transitops.com': { name: 'Demo User', password: 'demo' },
 };
 
+const STORAGE_KEY = 'transitops_registered_users';
+
 function getInitials(name: string) {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function loadRegisteredUsers(): RegisteredUser[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRegisteredUsers(users: RegisteredUser[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -57,14 +85,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
 
   const login = useCallback((email: string, password: string, role: Role): boolean => {
-    const found = MOCK_USERS[email.toLowerCase()];
+    const normalizedEmail = email.toLowerCase();
+
+    // Check mock demo users first
+    const found = MOCK_USERS[normalizedEmail];
     if (found && found.password === password) {
-      setUser({ name: found.name, email, role, initials: getInitials(found.name) });
+      setUser({ name: found.name, email: normalizedEmail, role, initials: getInitials(found.name) });
       setFailedAttempts(0);
       return true;
     }
+
+    // Check registered users
+    const registered = loadRegisteredUsers();
+    const registeredUser = registered.find(u => u.email.toLowerCase() === normalizedEmail);
+    if (registeredUser && registeredUser.password === password) {
+      setUser({ name: registeredUser.name, email: normalizedEmail, role, initials: getInitials(registeredUser.name) });
+      setFailedAttempts(0);
+      return true;
+    }
+
     setFailedAttempts(prev => prev + 1);
     return false;
+  }, []);
+
+  const register = useCallback((data: RegisteredUser): { success: boolean; error?: string } => {
+    const normalizedEmail = data.email.toLowerCase();
+
+    // Check if email already exists in mock users
+    if (MOCK_USERS[normalizedEmail]) {
+      return { success: false, error: 'An account with this email already exists.' };
+    }
+
+    // Check if email already exists in registered users
+    const existing = loadRegisteredUsers();
+    if (existing.some(u => u.email.toLowerCase() === normalizedEmail)) {
+      return { success: false, error: 'An account with this email already exists.' };
+    }
+
+    const updated = [...existing, { ...data, email: normalizedEmail }];
+    saveRegisteredUsers(updated);
+
+    // Auto sign in after registration
+    setUser({
+      name: data.name,
+      email: normalizedEmail,
+      role: data.role,
+      initials: getInitials(data.name),
+    });
+    setFailedAttempts(0);
+
+    return { success: true };
   }, []);
 
   const logout = useCallback(() => {
@@ -74,7 +144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      user, login, logout, failedAttempts,
+      user, login, register, logout, failedAttempts,
       vehicles, setVehicles,
       drivers, setDrivers,
       trips, setTrips,

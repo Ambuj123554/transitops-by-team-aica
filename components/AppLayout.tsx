@@ -20,8 +20,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
       <Header />
-      <main className="ml-56 pt-14 min-h-screen">
-        <div className="p-6 max-w-[1400px]">{children}</div>
+      <main className="ml-64 pt-14 min-h-screen">
+        <div className="p-8">{children}</div>
       </main>
     </div>
   );
