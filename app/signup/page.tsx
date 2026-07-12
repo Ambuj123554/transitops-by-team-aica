@@ -129,20 +129,28 @@ export default function SignupPage() {
           </p>
 
           <div>
-            <p className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">What you&apos;ll get:</p>
-            <ul className="space-y-3">
-              {[
-                'Full fleet & driver management',
-                'Real-time trip dispatching',
-                'Operations analytics & reports',
-                'Role-based access controls',
-              ].map(text => (
-                <li key={text} className="flex items-start gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                  <span className="text-background/80">{text}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">Role access summary</p>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-background/20">
+                  <th scope="col" className="text-left py-1.5 pr-2 font-semibold text-muted-foreground/80">Role</th>
+                  <th scope="col" className="text-left py-1.5 pl-2 font-semibold text-muted-foreground/80">Access Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  ['Fleet Manager', 'Fleet, Drivers, Maintenance, Analytics'],
+                  ['Dispatcher', 'Dashboard, Trips (full), Fleet & Drivers (view)'],
+                  ['Safety Officer', 'Drivers (full), Trips (view)'],
+                  ['Financial Analyst', 'Fuel & Expenses, Analytics, Fleet & Analytics (view)'],
+                ] as [string, string][]).map(([role, access]) => (
+                  <tr key={role} className="border-b border-background/10">
+                    <td className="py-1.5 pr-2 font-semibold text-background/90">{role}</td>
+                    <td className="py-1.5 pl-2 text-background/70">{access}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 

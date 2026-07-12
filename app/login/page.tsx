@@ -60,34 +60,49 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left column */}
-      <div className="hidden lg:flex flex-col justify-between w-1/2 bg-foreground/90 p-12 text-background">
-        <div>
-          <span className="text-2xl font-semibold tracking-tight">TransitOps</span>
+      {/* Left column — brand with background image */}
+      <div className="hidden lg:flex flex-col justify-between w-[38%] relative overflow-hidden p-12 text-white bg-neutral-900"
+        style={{
+          backgroundImage: `url(https://images.unsplash.com/photo-1542601906-90e6974d5043?q=80&w=2000&auto=format&fit=crop)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/60" />
+
+        <div className="relative z-10">
+          <span className="text-4xl font-bold tracking-tight">TransitOps</span>
         </div>
 
-        <div className="max-w-md">
-          <h1 className="text-4xl font-bold tracking-tight leading-tight mb-4">
+        <div className="relative z-10 max-w-md space-y-5">
+          <h1 className="text-2xl font-semibold tracking-tight leading-relaxed text-white/90">
             Smart Transport<br />Operations Platform
           </h1>
-          <p className="text-muted-foreground text-lg mb-10 leading-relaxed">
+          <p className="text-white/70 text-base leading-relaxed">
             Streamline fleet management, dispatch, compliance, and analytics in one unified platform.
           </p>
 
-          <div>
-            <p className="text-sm font-semibold text-background/70 mb-4 uppercase tracking-wider">One login, four roles:</p>
-            <ul className="space-y-3">
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-white/70 uppercase tracking-widest">
+              Intelligent fleet operations for every role
+            </p>
+
+            {/* Role names as text chips */}
+            <div className="flex flex-wrap gap-2">
               {(['Fleet Manager', 'Dispatcher', 'Safety Officer', 'Financial Analyst'] as Role[]).map(role => (
-                <li key={role} className="flex items-start gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                  <span className="text-background/80">{role}</span>
-                </li>
+                <span
+                  key={role}
+                  className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white/75 text-[11px] font-medium tracking-wide"
+                >
+                  {role}
+                </span>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
 
-        <p className="text-background/50 text-sm">Use demo@transitops.com / demo to sign in</p>
+        <p className="relative z-10 text-white/40 text-sm">Use demo@transitops.com / demo to sign in</p>
       </div>
 
       {/* Right column */}
@@ -203,17 +218,25 @@ export default function LoginPage() {
           {!locked && (
             <div className="card-modern mt-5 p-4">
               <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Role access summary</p>
-              <ul className="space-y-1.5">
-                {(Object.entries(ROLE_ACCESS) as [Role, string][]).map(([role, access]) => (
-                  <li
-                    key={role}
-                    className={`text-xs flex gap-1.5 ${selectedRole === role ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
-                  >
-                    <span className="font-semibold">{role}:</span>
-                    <span>{access}</span>
-                  </li>
-                ))}
-              </ul>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th scope="col" className="text-left py-1.5 pr-2 font-semibold text-foreground/70">Role</th>
+                    <th scope="col" className="text-left py-1.5 pl-2 font-semibold text-foreground/70">Access Level</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(Object.entries(ROLE_ACCESS) as [Role, string][]).map(([role, access]) => (
+                    <tr
+                      key={role}
+                      className={`border-b border-border/10 ${selectedRole === role ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                    >
+                      <td className={`py-1.5 pr-2 ${selectedRole === role ? 'text-primary' : ''} font-semibold`}>{role}</td>
+                      <td className="py-1.5 pl-2">{access}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
