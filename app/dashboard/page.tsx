@@ -5,12 +5,11 @@ import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useApp } from '@/lib/app-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockVehicles } from '@/lib/mock-data';
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col gap-1">
-      <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</p>
+    <div className="card-modern p-5 flex flex-col gap-1 transition-all duration-200 hover:shadow-[0_4px_12px_0_rgb(0_0_0/0.06)]">
+      <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
       <p className="text-2xl font-bold tracking-tight text-slate-900">{value}</p>
       {sub && <p className="text-xs text-slate-400">{sub}</p>}
     </div>
@@ -19,7 +18,7 @@ function KpiCard({ label, value, sub }: { label: string; value: string | number;
 
 const VEHICLE_STATUS_LABELS = ['Available', 'On Trip', 'In Shop', 'Retired'] as const;
 const STATUS_COLORS: Record<string, string> = {
-  Available: 'bg-green-500',
+  Available: 'bg-emerald-500',
   'On Trip': 'bg-blue-500',
   'In Shop': 'bg-amber-500',
   Retired: 'bg-slate-400',
@@ -31,12 +30,17 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [region, setRegion] = useState('all');
 
+  // Use drivers from the returned object since useApp() is already called
+  const allDrivers = drivers;
+  const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
+  const driverMap = Object.fromEntries(allDrivers.map(d => [d.id, d]));
+
   const activeVehicles = vehicles.filter(v => v.status === 'On Trip').length;
   const availableVehicles = vehicles.filter(v => v.status === 'Available').length;
   const inMaintenance = vehicles.filter(v => v.status === 'In Shop').length;
   const activeTrips = trips.filter(t => t.status === 'Dispatched').length;
   const pendingTrips = trips.filter(t => t.status === 'Draft').length;
-  const driversOnDuty = drivers.filter(d => d.status === 'On Trip').length;
+  const driversOnDuty = allDrivers.filter(d => d.status === 'On Trip').length;
   const utilization = vehicles.length > 0
     ? Math.round((activeVehicles / vehicles.filter(v => v.status !== 'Retired').length) * 100)
     : 0;
@@ -50,21 +54,18 @@ export default function DashboardPage() {
   }));
   const maxCount = Math.max(...vehicleStatusCounts.map(v => v.count), 1);
 
-  const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
-  const driverMap = Object.fromEntries(useApp().drivers.map(d => [d.id, d]));
-
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Real-time fleet operations overview</p>
+      <div className="page-container">
+        <div className="page-header">
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Real-time fleet operations overview</p>
         </div>
 
         {/* Filter row */}
         <div className="flex gap-3 flex-wrap">
           <Select value={vehicleType} onValueChange={setVehicleType}>
-            <SelectTrigger className="w-44 h-8 text-sm">
+            <SelectTrigger className="w-44 h-9 text-sm rounded-lg">
               <SelectValue placeholder="Vehicle Type" />
             </SelectTrigger>
             <SelectContent>
@@ -75,7 +76,7 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-8 text-sm">
+            <SelectTrigger className="w-40 h-9 text-sm rounded-lg">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -86,7 +87,7 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
           <Select value={region} onValueChange={setRegion}>
-            <SelectTrigger className="w-40 h-8 text-sm">
+            <SelectTrigger className="w-40 h-9 text-sm rounded-lg">
               <SelectValue placeholder="Region" />
             </SelectTrigger>
             <SelectContent>
@@ -112,19 +113,19 @@ export default function DashboardPage() {
         {/* Two-column section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Trips */}
-          <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200">
+          <div className="lg:col-span-2 card-modern overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100">
               <h2 className="font-semibold text-slate-900">Recent Trips</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="table-modern">
                 <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Trip ID</th>
-                    <th className="text-left px-3 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Vehicle</th>
-                    <th className="text-left px-3 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Driver</th>
-                    <th className="text-left px-3 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-3 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">ETA</th>
+                  <tr>
+                    <th>Trip ID</th>
+                    <th>Vehicle</th>
+                    <th>Driver</th>
+                    <th>Status</th>
+                    <th>ETA</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -132,12 +133,12 @@ export default function DashboardPage() {
                     const vehicle = vehicleMap[trip.vehicleId];
                     const driver = trip.driverId ? driverMap[trip.driverId] : null;
                     return (
-                      <tr key={trip.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                        <td className="px-5 py-3 font-mono text-xs font-medium text-slate-700">{trip.id}</td>
-                        <td className="px-3 py-3 text-slate-600">{vehicle?.regNo ?? '—'}</td>
-                        <td className="px-3 py-3 text-slate-600">{driver?.name ?? <span className="text-slate-400">Unassigned</span>}</td>
-                        <td className="px-3 py-3"><StatusBadge status={trip.status} /></td>
-                        <td className="px-3 py-3 text-slate-600">{trip.eta}</td>
+                      <tr key={trip.id}>
+                        <td className="font-mono text-xs font-semibold text-slate-700">{trip.id}</td>
+                        <td>{vehicle?.regNo ?? '—'}</td>
+                        <td>{driver?.name ?? <span className="text-slate-400">Unassigned</span>}</td>
+                        <td><StatusBadge status={trip.status} /></td>
+                        <td>{trip.eta}</td>
                       </tr>
                     );
                   })}
@@ -147,7 +148,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Vehicle Status */}
-          <div className="bg-white rounded-lg border border-slate-200">
+          <div className="card-modern">
             <div className="px-5 py-4 border-b border-slate-100">
               <h2 className="font-semibold text-slate-900">Vehicle Status</h2>
             </div>

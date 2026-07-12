@@ -34,12 +34,12 @@ function isExpired(dateStr: string) {
 
 function SafetyBadge({ score }: { score: number }) {
   const style = score >= 85
-    ? 'bg-green-100 text-green-800 border-green-200'
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
     : score >= 70
-    ? 'bg-amber-100 text-amber-800 border-amber-200'
-    : 'bg-red-100 text-red-800 border-red-200';
+    ? 'bg-amber-50 text-amber-700 border-amber-200/60'
+    : 'bg-red-50 text-red-700 border-red-200/60';
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${style}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${style}`}>
       {score}
     </span>
   );
@@ -78,13 +78,13 @@ export default function DriversPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="page-container">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Drivers & Safety</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Driver profiles and safety compliance</p>
+            <h1 className="page-title">Drivers & Safety</h1>
+            <p className="page-subtitle">Driver profiles and safety compliance</p>
           </div>
-          <Button onClick={openAdd} className="gap-2 cursor-pointer">
+          <Button onClick={openAdd} className="gap-2 rounded-lg cursor-pointer">
             <Plus className="w-4 h-4" /> Add Driver
           </Button>
         </div>
@@ -93,16 +93,16 @@ export default function DriversPage() {
           placeholder="Search by name or license number..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-64 h-8 text-sm"
+          className="w-64 h-9 text-sm rounded-lg"
         />
 
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className="card-modern overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="table-modern">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr>
                   {['Driver', 'License No.', 'Category', 'Expiry', 'Contact', 'Trip Compl.', 'Safety', 'Status'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -110,24 +110,24 @@ export default function DriversPage() {
                 {filtered.map(d => {
                   const expired = isExpired(d.expiry);
                   return (
-                    <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-slate-900">{d.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-600">{d.licenseNo}</td>
-                      <td className="px-4 py-3 text-slate-600">{d.category}</td>
-                      <td className="px-4 py-3">
-                        <span className={expired ? 'text-red-600 font-medium' : 'text-slate-600'}>
+                    <tr key={d.id}>
+                      <td className="font-medium text-slate-900">{d.name}</td>
+                      <td className="font-mono text-xs text-slate-600">{d.licenseNo}</td>
+                      <td>{d.category}</td>
+                      <td>
+                        <span className={expired ? 'text-red-600 font-medium' : ''}>
                           {d.expiry}
                           {expired && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-700 font-bold">
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-red-50 text-red-600 font-semibold border border-red-200/60">
                               <AlertTriangle className="w-3 h-3" /> EXPIRED
                             </span>
                           )}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{d.contact}</td>
-                      <td className="px-4 py-3 text-slate-600">{d.tripCompletion}%</td>
-                      <td className="px-4 py-3"><SafetyBadge score={d.safetyScore} /></td>
-                      <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+                      <td>{d.contact}</td>
+                      <td>{d.tripCompletion}%</td>
+                      <td><SafetyBadge score={d.safetyScore} /></td>
+                      <td><StatusBadge status={d.status} /></td>
                     </tr>
                   );
                 })}
@@ -139,63 +139,61 @@ export default function DriversPage() {
           </div>
 
           {/* Legend */}
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center gap-4">
+          <div className="px-5 py-3 bg-slate-50/60 border-t border-slate-100 flex flex-wrap items-center gap-4">
             {['Available', 'On Trip', 'Off Duty', 'Suspended'].map(s => (
               <div key={s} className="flex items-center gap-1.5">
                 <StatusBadge status={s} />
               </div>
             ))}
           </div>
-          <div className="px-4 py-2 border-t border-slate-100 flex items-start gap-2">
+          <div className="px-5 py-2.5 border-t border-slate-100 flex items-start gap-2 bg-slate-50/30">
             <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-slate-400">
-              Expired license or Suspended status → blocked from trip assignment
-            </p>
+            <p className="text-xs text-slate-400">Expired license or Suspended status → blocked from trip assignment</p>
           </div>
         </div>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg rounded-xl">
           <DialogHeader>
-            <DialogTitle>Add New Driver</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">Add New Driver</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5 col-span-2">
-                <Label>Full Name *</Label>
-                <Input {...register('name')} placeholder="John Doe" />
+                <Label className="text-sm font-medium">Full Name *</Label>
+                <Input {...register('name')} placeholder="John Doe" className="rounded-lg" />
                 {errors.name && <p className="text-xs text-red-600">{errors.name.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>License Number *</Label>
-                <Input {...register('licenseNo')} placeholder="DL-XXXXXXXX" />
+                <Label className="text-sm font-medium">License Number *</Label>
+                <Input {...register('licenseNo')} placeholder="DL-XXXXXXXX" className="rounded-lg" />
                 {errors.licenseNo && <p className="text-xs text-red-600">{errors.licenseNo.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>License Category *</Label>
-                <Input {...register('category')} placeholder="Class A" />
+                <Label className="text-sm font-medium">License Category *</Label>
+                <Input {...register('category')} placeholder="Class A" className="rounded-lg" />
                 {errors.category && <p className="text-xs text-red-600">{errors.category.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>License Expiry Date *</Label>
-                <Input {...register('expiry')} type="date" />
+                <Label className="text-sm font-medium">License Expiry Date *</Label>
+                <Input {...register('expiry')} type="date" className="rounded-lg" />
                 {errors.expiry && <p className="text-xs text-red-600">{errors.expiry.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>Contact Number *</Label>
-                <Input {...register('contact')} placeholder="+1-555-0100" />
+                <Label className="text-sm font-medium">Contact Number *</Label>
+                <Input {...register('contact')} placeholder="+1-555-0100" className="rounded-lg" />
                 {errors.contact && <p className="text-xs text-red-600">{errors.contact.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>Safety Score (0–100)</Label>
-                <Input {...register('safetyScore')} type="number" min={0} max={100} />
+                <Label className="text-sm font-medium">Safety Score (0–100)</Label>
+                <Input {...register('safetyScore')} type="number" min={0} max={100} className="rounded-lg" />
                 {errors.safetyScore && <p className="text-xs text-red-600">{errors.safetyScore.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label>Status</Label>
+                <Label className="text-sm font-medium">Status</Label>
                 <Select defaultValue="Available" onValueChange={val => setValue('status', val as DriverStatus)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Available">Available</SelectItem>
                     <SelectItem value="Off Duty">Off Duty</SelectItem>
@@ -205,8 +203,8 @@ export default function DriversPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Cancel</Button>
-              <Button type="submit" className="cursor-pointer">Add Driver</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-lg cursor-pointer">Cancel</Button>
+              <Button type="submit" className="rounded-lg cursor-pointer">Add Driver</Button>
             </DialogFooter>
           </form>
         </DialogContent>

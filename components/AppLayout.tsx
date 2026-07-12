@@ -17,11 +17,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f5f6fa]">
       <Sidebar />
       <Header />
       <main className="ml-64 pt-14 min-h-screen">
-        <div className="p-8">{children}</div>
+        <div className="p-7">{children}</div>
       </main>
     </div>
   );

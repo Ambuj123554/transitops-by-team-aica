@@ -12,8 +12,8 @@ import {
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4 space-y-1">
-      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
+    <div className="card-modern p-5 space-y-1">
+      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
       <p className="text-2xl font-bold tracking-tight text-slate-900">{value}</p>
       {sub && <p className="text-xs text-slate-400">{sub}</p>}
     </div>
@@ -73,20 +73,20 @@ export default function AnalyticsPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="page-container">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Analytics & Reports</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Fleet performance insights</p>
+            <h1 className="page-title">Analytics & Reports</h1>
+            <p className="page-subtitle">Fleet performance insights</p>
           </div>
-          <Button variant="outline" className="gap-2 cursor-pointer" onClick={exportCSV}>
+          <Button variant="outline" className="gap-2 rounded-lg cursor-pointer" onClick={exportCSV}>
             <Download className="w-4 h-4" /> Export CSV
           </Button>
         </div>
 
         <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input placeholder="Search..." className="pl-8 h-8 text-sm" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input placeholder="Search..." className="pl-9 h-9 text-sm rounded-lg" />
         </div>
 
         {/* KPI Row */}
@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Monthly Revenue Bar Chart */}
-          <div className="bg-white rounded-lg border border-slate-200 p-5">
+          <div className="card-modern p-6">
             <h2 className="font-semibold text-slate-900 mb-4">Monthly Revenue</h2>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={monthlyRevenue} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
                 />
                 <Tooltip
                   formatter={(v: number) => [`$${v.toLocaleString()}`, 'Revenue']}
-                  contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                  contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
                 />
                 <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
                   {monthlyRevenue.map((_, i) => (
@@ -130,9 +130,9 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Top Costliest Vehicles */}
-          <div className="bg-white rounded-lg border border-slate-200 p-5">
+          <div className="card-modern p-6">
             <h2 className="font-semibold text-slate-900 mb-4">Top Costliest Vehicles</h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {vehicleCosts.map((v, i) => (
                 <div key={v.id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">

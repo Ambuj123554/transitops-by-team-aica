@@ -35,7 +35,6 @@ export default function MaintenancePage() {
   });
 
   const formStatus = watch('status');
-  const formVehicleId = watch('vehicleId');
 
   const vehicleMap = Object.fromEntries(vehicles.map(v => [v.id, v]));
 
@@ -43,13 +42,11 @@ export default function MaintenancePage() {
     const record: MaintenanceRecord = { id: `m${Date.now()}`, ...data };
     setMaintenance(prev => [record, ...prev]);
 
-    // Update vehicle status based on service record
     if (data.status === 'Active') {
       setVehicles(prev => prev.map(v =>
         v.id === data.vehicleId ? { ...v, status: 'In Shop' } : v
       ));
     } else {
-      // Completed — return to Available if it was In Shop
       const vehicle = vehicleMap[data.vehicleId];
       if (vehicle?.status === 'In Shop') {
         setVehicles(prev => prev.map(v =>
@@ -65,26 +62,26 @@ export default function MaintenancePage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="page-container">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Maintenance</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Service records and vehicle status tracking</p>
+          <h1 className="page-title">Maintenance</h1>
+          <p className="page-subtitle">Service records and vehicle status tracking</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Log Form */}
-          <div className="bg-white rounded-lg border border-slate-200">
+          <div className="card-modern">
             <div className="px-5 py-4 border-b border-slate-100">
               <h2 className="font-semibold text-slate-900">Log Service Record</h2>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="px-5 py-4 space-y-4">
               <div className="space-y-1.5">
-                <Label>Vehicle *</Label>
+                <Label className="text-sm font-medium">Vehicle *</Label>
                 <Select
                   value={statusVehicle}
                   onValueChange={val => { setValue('vehicleId', val); setStatusVehicle(val); }}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                   <SelectContent>
                     {vehicles.filter(v => v.status !== 'Retired').map(v => (
                       <SelectItem key={v.id} value={v.id}>
@@ -100,31 +97,31 @@ export default function MaintenancePage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Service Type *</Label>
-                <Input {...register('serviceType')} placeholder="e.g. Oil Change, Brake Service" />
+                <Label className="text-sm font-medium">Service Type *</Label>
+                <Input {...register('serviceType')} placeholder="e.g. Oil Change, Brake Service" className="h-10 rounded-lg" />
                 {errors.serviceType && <p className="text-xs text-red-600">{errors.serviceType.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Cost ($) *</Label>
-                  <Input {...register('cost')} type="number" step="0.01" placeholder="500" />
+                  <Label className="text-sm font-medium">Cost ($) *</Label>
+                  <Input {...register('cost')} type="number" step="0.01" placeholder="500" className="h-10 rounded-lg" />
                   {errors.cost && <p className="text-xs text-red-600">{errors.cost.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Date *</Label>
-                  <Input {...register('date')} type="date" />
+                  <Label className="text-sm font-medium">Date *</Label>
+                  <Input {...register('date')} type="date" className="h-10 rounded-lg" />
                   {errors.date && <p className="text-xs text-red-600">{errors.date.message}</p>}
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label>Status</Label>
+                <Label className="text-sm font-medium">Status</Label>
                 <Select
                   defaultValue="Active"
                   onValueChange={val => setValue('status', val as MaintenanceStatus)}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-10 rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Active">Active (In Shop)</SelectItem>
                     <SelectItem value="Completed">Completed</SelectItem>
@@ -132,26 +129,26 @@ export default function MaintenancePage() {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-full cursor-pointer">Save Service Record</Button>
+              <Button type="submit" className="w-full h-10 rounded-lg cursor-pointer">Save Service Record</Button>
             </form>
 
             {/* Status transition rules */}
             <div className="px-5 pb-5 space-y-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status Transitions</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status Transitions</p>
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <span className="px-2 py-1 rounded bg-green-100 text-green-700 font-medium">Available</span>
+                <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
+                  <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-medium border border-emerald-200/60">Available</span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                   <span className="text-slate-400 text-xs">(create active record)</span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 font-medium">In Shop</span>
+                  <span className="px-2 py-1 rounded bg-amber-50 text-amber-700 font-medium border border-amber-200/60">In Shop</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 font-medium">In Shop</span>
+                <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
+                  <span className="px-2 py-1 rounded bg-amber-50 text-amber-700 font-medium border border-amber-200/60">In Shop</span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
                   <span className="text-slate-400 text-xs">(close record)</span>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="px-2 py-1 rounded bg-green-100 text-green-700 font-medium">Available</span>
+                  <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 font-medium border border-emerald-200/60">Available</span>
                 </div>
               </div>
               <div className="flex items-start gap-2 pt-1">
@@ -162,16 +159,16 @@ export default function MaintenancePage() {
           </div>
 
           {/* Service Log */}
-          <div className="bg-white rounded-lg border border-slate-200">
+          <div className="card-modern">
             <div className="px-5 py-4 border-b border-slate-100">
               <h2 className="font-semibold text-slate-900">Service Log</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="table-modern">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
+                  <tr>
                     {['Vehicle', 'Service', 'Cost', 'Date', 'Status'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -179,12 +176,12 @@ export default function MaintenancePage() {
                   {maintenance.map(r => {
                     const vehicle = vehicleMap[r.vehicleId];
                     return (
-                      <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-slate-700 font-medium">{vehicle?.regNo ?? '—'}</td>
-                        <td className="px-4 py-3 text-slate-600">{r.serviceType}</td>
-                        <td className="px-4 py-3 text-slate-600">${r.cost.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">{r.date}</td>
-                        <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                      <tr key={r.id}>
+                        <td className="font-medium text-slate-700">{vehicle?.regNo ?? '—'}</td>
+                        <td>{r.serviceType}</td>
+                        <td>${r.cost.toLocaleString()}</td>
+                        <td className="text-xs">{r.date}</td>
+                        <td><StatusBadge status={r.status} /></td>
                       </tr>
                     );
                   })}

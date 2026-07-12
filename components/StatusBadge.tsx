@@ -7,27 +7,27 @@ type Status = VehicleStatus | DriverStatus | TripStatus | MaintenanceStatus | st
 
 const STATUS_STYLES: Record<string, string> = {
   // Vehicle / Driver shared
-  Available: 'bg-green-100 text-green-800 border-green-200',
-  'On Trip': 'bg-blue-100 text-blue-800 border-blue-200',
-  'In Shop': 'bg-amber-100 text-amber-800 border-amber-200',
-  Retired: 'bg-slate-100 text-slate-600 border-slate-200',
+  Available: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  'On Trip': 'bg-blue-50 text-blue-700 border-blue-200/60',
+  'In Shop': 'bg-amber-50 text-amber-700 border-amber-200/60',
+  Retired: 'bg-slate-50 text-slate-500 border-slate-200/60',
   // Driver-only
-  'Off Duty': 'bg-slate-100 text-slate-600 border-slate-200',
-  Suspended: 'bg-red-100 text-red-800 border-red-200',
+  'Off Duty': 'bg-slate-50 text-slate-500 border-slate-200/60',
+  Suspended: 'bg-red-50 text-red-700 border-red-200/60',
   // Trip
-  Draft: 'bg-slate-100 text-slate-600 border-slate-200',
-  Dispatched: 'bg-blue-100 text-blue-800 border-blue-200',
-  Completed: 'bg-green-100 text-green-800 border-green-200',
-  Cancelled: 'bg-red-100 text-red-800 border-red-200',
+  Draft: 'bg-slate-50 text-slate-500 border-slate-200/60',
+  Dispatched: 'bg-blue-50 text-blue-700 border-blue-200/60',
+  Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+  Cancelled: 'bg-red-50 text-red-700 border-red-200/60',
   // Maintenance
-  Active: 'bg-amber-100 text-amber-800 border-amber-200',
+  Active: 'bg-amber-50 text-amber-700 border-amber-200/60',
 };
 
 export function StatusBadge({ status, className }: { status: Status; className?: string }) {
-  const style = STATUS_STYLES[status] ?? 'bg-slate-100 text-slate-600 border-slate-200';
+  const style = STATUS_STYLES[status] ?? 'bg-slate-50 text-slate-500 border-slate-200/60';
   return (
     <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border',
+      'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border',
       style, className
     )}>
       {status}
