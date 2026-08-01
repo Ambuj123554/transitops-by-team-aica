@@ -8,7 +8,7 @@ A full-stack fleet management platform for dispatching trips, managing vehicles 
 
 - **Trip Dispatcher** - Create, dispatch, complete, and cancel trips with vehicle/driver assignment and cargo capacity validation.
 - **Fleet Management** - Full vehicle registry with CRUD operations, status tracking (Available, On Trip, In Shop, Retired), and region-based filtering.
-- **Driver Management** - Driver profiles with license tracking, safety scores, trip completion rates, and automatic license expiry detection.
+- **Driver Management** - Driver profiles with license tracking, safety scores, trip completion rates, and automatic license expiry detectsion.
 - **Maintenance Tracking** - Service record logging with automatic vehicle status transitions (Available to In Shop and back).
 - **Fuel & Expense Tracking** - Fuel consumption logs, toll and miscellaneous expense recording, operational cost aggregation.
 - **Dashboard** - Real-time KPI cards (active vehicles, trips, drivers on duty, fleet utilization) with vehicle type, status, and region filters.
